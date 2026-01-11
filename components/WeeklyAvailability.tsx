@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { Court } from '@/types'
 import { mockCourts } from '@/data/mockCourts'
 import { MapPin, Star, DollarSign, Calendar } from '@/components/Icons'
@@ -19,13 +19,14 @@ interface WeeklyAvailabilityProps {
   courts?: Court[]
 }
 
+const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
 export default function WeeklyAvailability({ courts = mockCourts }: WeeklyAvailabilityProps) {
-  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(daysOfWeek))
 
   // Get current week's dates
-  const getCurrentWeekDates = () => {
+  const getCurrentWeekDates = useCallback(() => {
     const today = new Date()
     const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
     
@@ -44,7 +45,7 @@ export default function WeeklyAvailability({ courts = mockCourts }: WeeklyAvaila
       })
     }
     return weekDates
-  }
+  }, [])
 
   const weekAvailability = useMemo(() => {
     const weekDates = getCurrentWeekDates()
@@ -87,7 +88,7 @@ export default function WeeklyAvailability({ courts = mockCourts }: WeeklyAvaila
     })
 
     return availabilityByDay
-  }, [courts])
+  }, [courts, getCurrentWeekDates])
 
   const surfaceColors: Record<string, string> = {
     Hard: 'bg-miami-turquoise/20 text-miami-turquoise-dark border border-miami-turquoise/30',
@@ -122,7 +123,7 @@ export default function WeeklyAvailability({ courts = mockCourts }: WeeklyAvaila
   return (
     <div className="bg-white rounded-3xl shadow-luxury p-8 border-2 border-miami-turquoise/20">
       <div className="mb-6">
-        <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">This Week's Availability</h2>
+        <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">This Week&apos;s Availability</h2>
         <p className="text-gray-700">Available courts by day, sorted by distance</p>
       </div>
 

@@ -42,6 +42,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchCourts = async () => {
@@ -108,6 +109,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters])
 
   const filteredCourts = useMemo(() => {

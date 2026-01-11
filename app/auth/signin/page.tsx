@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from '@/components/Icons'
 import { createBrowserClient } from '@/lib/supabase-client'
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
@@ -130,7 +130,7 @@ export default function SignInPage() {
 
           <div className="mt-8 text-center">
             <p className="text-sm text-clay-rust-dark/70">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/auth/signup" className="text-miami-turquoise hover:text-miami-ocean font-bold transition-colors">
                 Sign up
               </Link>
@@ -139,6 +139,27 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20"></div>
+        <div className="absolute inset-0 art-deco-pattern opacity-15"></div>
+        <div className="max-w-md w-full animate-fade-in relative z-10">
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-miami-turquoise/30">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-miami-turquoise border-t-transparent mx-auto"></div>
+              <p className="mt-4 text-clay-rust-dark font-semibold">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   )
 }
 
