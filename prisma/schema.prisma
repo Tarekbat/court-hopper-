@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials provider
+  accounts      Account[]
+  sessions      Session[]
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Court {
+  id            String    @id @default(cuid())
+  name          String
+  address       String
+  city          String
+  state         String
+  zipCode       String
+  latitude      Float
+  longitude     Float
+  distance      Float?    // Can be calculated on the fly
+  peakPrice     Float
+  offPeakPrice  Float
+  surface       String    // Hard, Clay, Grass, etc.
+  rating        Float     @default(0)
+  reviewCount   Int       @default(0)
+  totalCourts   Int
+  description   String    @db.Text
+  images        String    @db.Text // JSON array stored as string
+  amenities     String    @db.Text // JSON array stored as string
+  availableDays String    @db.Text // JSON array stored as string
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  reviews       Review[]
+
+  @@index([city])
+  @@index([surface])
+}
+
+model TimeSlot {
+  id          String   @id @default(cuid())
+  courtId     String
+  court       Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int      // 0 = Sunday, 1 = Monday, etc.
+  startTime   String   // e.g., "09:00"
+  endTime     String   // e.g., "10:00"
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courtId, dayOfWeek])
+}
+
+model Booking {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courtId           String
+  court             Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  courtNumber       String
+  bookingDate       DateTime // Actual date, not just day name
+  startTime         String   // e.g., "09:00"
+  endTime           String   // e.g., "10:00"
+  duration          Float    // in hours
+  price             Float
+  status            String   @default("confirmed") // confirmed, cancelled, completed
+  isRecurring       Boolean  @default(false)
+  recurringPattern  String?  @db.Text // JSON string
+  paymentIntentId   String?  // Stripe payment intent ID
+  paymentStatus     String   @default("pending") // pending, paid, refunded
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([courtId, bookingDate])
+  @@index([status])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  courtId   String
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  userId    String
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courtId, userId])
+  @@index([courtId])
+}
+
