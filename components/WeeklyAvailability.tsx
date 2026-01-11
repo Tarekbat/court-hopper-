@@ -54,6 +54,7 @@ export default function WeeklyAvailability({ courts = mockCourts }: WeeklyAvaila
     })
 
     return slots
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courts])
 
   const isPeakTime = (time: string) => {

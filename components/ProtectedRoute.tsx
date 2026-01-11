@@ -1,20 +1,49 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { createBrowserClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
-import { useEffect, ReactNode } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin')
-    }
-  }, [status, router])
+    const checkAuth = async () => {
+      const supabase = createBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-  if (status === 'loading') {
+      if (!session) {
+        router.push('/auth/signin')
+      } else {
+        setIsAuthenticated(true)
+      }
+      setIsLoading(false)
+    }
+
+    checkAuth()
+
+    // Listen for auth changes
+    const supabase = createBrowserClient()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        router.push('/auth/signin')
+      } else if (event === 'SIGNED_IN') {
+        setIsAuthenticated(true)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -25,10 +54,9 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
     )
   }
 
-  if (status === 'unauthenticated') {
+  if (!isAuthenticated) {
     return null
   }
 
   return <>{children}</>
 }
-

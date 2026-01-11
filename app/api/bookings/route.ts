@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { addHours, parse, format } from 'date-fns'
 
@@ -12,49 +11,67 @@ const createBookingSchema = z.object({
   startTime: z.string(),
   duration: z.number().min(0.5).max(4),
   isRecurring: z.boolean().optional(),
-  recurringPattern: z.object({
-    frequency: z.enum(['weekly', 'biweekly', 'monthly']),
-    endDate: z.string().optional(),
-    daysOfWeek: z.array(z.string()).optional(),
-  }).optional(),
+  recurringPattern: z
+    .object({
+      frequency: z.enum(['weekly', 'biweekly', 'monthly']),
+      endDate: z.string().optional(),
+      daysOfWeek: z.array(z.string()).optional(),
+    })
+    .optional(),
 })
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const supabase = createServerSupabaseClient()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'confirmed'
     const upcoming = searchParams.get('upcoming') === 'true'
 
-    const where: any = {
-      userId: session.user.id,
-    }
+    let query = supabase
+      .from('bookings')
+      .select('*, court:courts(*)')
+      .eq('user_id', user.id)
 
     if (status !== 'all') {
-      where.status = status
+      query = query.eq('status', status)
     }
 
     if (upcoming) {
-      where.bookingDate = {
-        gte: new Date(),
-      }
+      query = query.gte('booking_date', new Date().toISOString())
+    } else {
+      query = query.order('booking_date', { ascending: true })
     }
 
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        court: true,
-      },
-      orderBy: {
-        bookingDate: 'asc',
-      },
-    })
+    const { data: bookings, error } = await query
 
-    return NextResponse.json(bookings)
+    if (error) {
+      console.error('Error fetching bookings:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    // Transform bookings to match expected format
+    const transformedBookings = (bookings || []).map((booking: any) => ({
+      ...booking,
+      userId: booking.user_id,
+      courtId: booking.court_id,
+      courtNumber: booking.court_number,
+      bookingDate: booking.booking_date,
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+      isRecurring: booking.is_recurring,
+      recurringPattern: booking.recurring_pattern,
+      paymentIntentId: booking.payment_intent_id,
+      paymentStatus: booking.payment_status,
+      createdAt: booking.created_at,
+      updatedAt: booking.updated_at,
+    }))
+
+    return NextResponse.json(transformedBookings)
   } catch (error) {
     console.error('Error fetching bookings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -63,20 +80,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    const user = await getCurrentUser()
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const supabase = createServerSupabaseClient()
     const body = await request.json()
     const validatedData = createBookingSchema.parse(body)
 
     // Check if court exists
-    const court = await prisma.court.findUnique({
-      where: { id: validatedData.courtId },
-    })
+    const { data: court, error: courtError } = await supabase
+      .from('courts')
+      .select('*')
+      .eq('id', validatedData.courtId)
+      .single()
 
-    if (!court) {
+    if (courtError || !court) {
       return NextResponse.json({ error: 'Court not found' }, { status: 404 })
     }
 
@@ -88,37 +108,34 @@ export async function POST(request: NextRequest) {
       'HH:mm'
     )
 
-    // Check for conflicts
-    const conflictingBooking = await prisma.booking.findFirst({
-      where: {
-        courtId: validatedData.courtId,
-        courtNumber: validatedData.courtNumber,
-        bookingDate: {
-          gte: new Date(bookingDate.setHours(0, 0, 0, 0)),
-          lt: new Date(bookingDate.setHours(23, 59, 59, 999)),
-        },
-        status: 'confirmed',
-        OR: [
-          {
-            AND: [
-              { startTime: { lte: startTime } },
-              { endTime: { gt: startTime } },
-            ],
-          },
-          {
-            AND: [
-              { startTime: { lt: endTime } },
-              { endTime: { gte: endTime } },
-            ],
-          },
-          {
-            AND: [
-              { startTime: { gte: startTime } },
-              { endTime: { lte: endTime } },
-            ],
-          },
-        ],
-      },
+    // Check for conflicts - need to check overlapping time slots
+    const startOfDay = new Date(bookingDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(bookingDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    // Get all bookings for this court, date, and court number
+    const { data: existingBookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('court_id', validatedData.courtId)
+      .eq('court_number', validatedData.courtNumber)
+      .eq('status', 'confirmed')
+      .gte('booking_date', startOfDay.toISOString())
+      .lte('booking_date', endOfDay.toISOString())
+
+    // Check for time conflicts
+    const conflictingBooking = (existingBookings || []).find((b) => {
+      const bookingStart = parse(b.start_time, 'HH:mm', new Date())
+      const bookingEnd = parse(b.end_time, 'HH:mm', new Date())
+      const slotStart = parse(startTime, 'HH:mm', new Date())
+      const slotEnd = parse(endTime, 'HH:mm', new Date())
+
+      return (
+        (slotStart >= bookingStart && slotStart < bookingEnd) ||
+        (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
+        (slotStart <= bookingStart && slotEnd >= bookingEnd)
+      )
     })
 
     if (conflictingBooking) {
@@ -131,33 +148,54 @@ export async function POST(request: NextRequest) {
     // Calculate price
     const hour = parseInt(startTime.split(':')[0])
     const isPeakTime = (hour >= 17 && hour < 20) || hour === 12
-    const pricePerHour = isPeakTime ? court.peakPrice : court.offPeakPrice
+    const pricePerHour = isPeakTime ? court.peak_price : court.off_peak_price
     const totalPrice = pricePerHour * validatedData.duration
 
     // Create booking
-    const booking = await prisma.booking.create({
-      data: {
-        userId: session.user.id,
-        courtId: validatedData.courtId,
-        courtNumber: validatedData.courtNumber,
-        bookingDate: new Date(validatedData.bookingDate),
-        startTime,
-        endTime,
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert({
+        user_id: user.id,
+        court_id: validatedData.courtId,
+        court_number: validatedData.courtNumber,
+        booking_date: new Date(validatedData.bookingDate).toISOString(),
+        start_time: startTime,
+        end_time: endTime,
         duration: validatedData.duration,
         price: totalPrice,
-        isRecurring: validatedData.isRecurring || false,
-        recurringPattern: validatedData.recurringPattern
-          ? JSON.stringify(validatedData.recurringPattern)
+        is_recurring: validatedData.isRecurring || false,
+        recurring_pattern: validatedData.recurringPattern
+          ? validatedData.recurringPattern
           : null,
         status: 'confirmed',
-        paymentStatus: 'pending',
-      },
-      include: {
-        court: true,
-      },
-    })
+        payment_status: 'pending',
+      })
+      .select('*, court:courts(*)')
+      .single()
 
-    return NextResponse.json(booking, { status: 201 })
+    if (bookingError) {
+      console.error('Error creating booking:', bookingError)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+
+    // Transform booking to match expected format
+    const transformedBooking = {
+      ...booking,
+      userId: booking.user_id,
+      courtId: booking.court_id,
+      courtNumber: booking.court_number,
+      bookingDate: booking.booking_date,
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+      isRecurring: booking.is_recurring,
+      recurringPattern: booking.recurring_pattern,
+      paymentIntentId: booking.payment_intent_id,
+      paymentStatus: booking.payment_status,
+      createdAt: booking.created_at,
+      updatedAt: booking.updated_at,
+    }
+
+    return NextResponse.json(transformedBooking, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 })
@@ -166,4 +204,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-

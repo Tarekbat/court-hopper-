@@ -18,7 +18,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   return (
     <form onSubmit={handleSubmit} className="w-full">
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-clay-terracotta w-6 h-6 z-10" />
         <input
           type="text"
           value={query}
@@ -26,8 +26,8 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
             setQuery(e.target.value)
             onSearch(e.target.value)
           }}
-          placeholder="Search courts by name or location..."
-          className="w-full pl-12 pr-4 py-4 rounded-lg border-2 border-white/20 bg-white/95 backdrop-blur-sm focus:border-white focus:outline-none focus:bg-white text-gray-900 placeholder-gray-500 shadow-lg"
+          placeholder="Search premium courts by name or location..."
+          className="w-full pl-16 pr-6 py-5 rounded-2xl border-2 border-clay-terracotta bg-white focus:border-clay-terracotta focus:outline-none focus:ring-4 focus:ring-clay-terracotta/20 focus:bg-white text-clay-rust-dark placeholder-clay-rust-dark/60 shadow-luxury transition-all text-lg font-semibold"
         />
       </div>
     </form>

@@ -20,14 +20,14 @@ export default function QuickActions({
       description: 'View and manage your reservations',
       href: '/bookings',
       icon: Calendar,
-      color: 'bg-blue-500',
+      gradient: 'from-clay-terracotta to-clay-orange',
     },
     {
       title: 'Map View',
       description: 'Find courts on a map',
       href: '#',
       icon: Map,
-      color: 'bg-green-500',
+      gradient: 'from-clay-rust to-clay-rust-dark',
       onClick: onMapViewClick,
     },
     {
@@ -35,7 +35,7 @@ export default function QuickActions({
       description: 'Courts available today',
       href: '#',
       icon: Clock,
-      color: 'bg-orange-500',
+      gradient: 'from-clay-terracotta to-clay-orange',
       onClick: onAvailableNowClick,
     },
     {
@@ -43,22 +43,28 @@ export default function QuickActions({
       description: 'Highest rated courts',
       href: '#',
       icon: Star,
-      color: 'bg-purple-500',
+      gradient: 'from-clay-rust to-clay-rust-dark',
       onClick: onTopRatedClick,
     },
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {actions.map((action) => {
         const Icon = action.icon
         const content = (
-          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer group border border-gray-100 h-full">
-            <div className={`${action.color} w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-              <Icon className="w-6 h-6 text-white" />
+          <div className="glass-dark rounded-3xl p-8 shadow-luxury hover:shadow-luxury-clay transition-all duration-500 cursor-pointer group border border-clay-terracotta/40 h-full card-hover relative overflow-hidden">
+            <div className="absolute inset-0 bg-clay-rust-dark/80 rounded-3xl"></div>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity" style={{
+              backgroundImage: `linear-gradient(90deg, ${action.gradient.includes('terracotta') ? '#C4621A, #CC5500' : '#B87333, #8B4513'})`
+            }}></div>
+            <div className="relative z-10">
+              <div className={`bg-gradient-to-br ${action.gradient} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-luxury`}>
+                <Icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-display font-bold text-white mb-2 group-hover:text-clay-cream transition-colors" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{action.title}</h3>
+              <p className="text-sm text-white leading-relaxed font-semibold" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>{action.description}</p>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">{action.title}</h3>
-            <p className="text-sm text-gray-600">{action.description}</p>
           </div>
         )
 

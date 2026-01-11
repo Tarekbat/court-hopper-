@@ -42,6 +42,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchCourts = async () => {
@@ -98,6 +99,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters])
 
   const filteredCourts = useMemo(() => {
@@ -142,26 +144,44 @@ export default function Home() {
   }, [courts, searchQuery, filters, showAvailableNow])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-clay-cream">
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-16 relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Find Your Perfect Court</h1>
-            <p className="text-xl text-primary-100 max-w-2xl mx-auto">
-              Book tennis courts near you with ease. Search, filter, and reserve in minutes.
+      <section className="bg-hero-gradient text-white py-32 md:py-40 relative z-10 overflow-hidden">
+        {/* Dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-clay-rust-dark/50"></div>
+        
+        {/* Clay court pattern overlay */}
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 4c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM60 91c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM35 41c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 60c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%23FFF8DC' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E")`
+        }}></div>
+        
+        {/* Terracotta accent lines */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-terracotta"></div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-terracotta"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-12 animate-fade-in">
+            <div className="inline-block mb-6 px-4 py-2 bg-clay-terracotta/30 backdrop-blur-sm rounded-full border border-clay-terracotta/50">
+              <span className="text-clay-cream text-sm font-bold tracking-[0.2em] uppercase">Elite Experience</span>
+            </div>
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-bold mb-8 leading-[1.1]">
+              <span className="text-white" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.6)' }}>Reserve Your</span>
+              <span className="block text-clay-cream mt-2" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.6)' }}>Perfect Court</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white max-w-3xl mx-auto font-semibold leading-relaxed" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
+              Exclusive access to premium tennis facilities. Experience luxury, precision, and excellence.
             </p>
           </div>
           
           {/* Search Bar in Hero */}
-          <div className="max-w-2xl mx-auto mb-6">
+          <div className="max-w-4xl mx-auto mb-12 animate-slide-up">
             <SearchBar onSearch={setSearchQuery} />
           </div>
 
           {/* Quick Actions */}
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto animate-slide-up">
             <QuickActions 
               onMapViewClick={() => {
                 setShowAvailableNow(false)
@@ -206,27 +226,27 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-0">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-0">
         {/* Upcoming Bookings Section */}
         <div className="mb-12">
           <UpcomingBookings />
         </div>
 
         {/* Filters Toggle */}
-        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+        <div className="mb-10 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700 shadow-sm"
+              className="px-6 py-3 glass border border-clay-terracotta/30 rounded-2xl hover:border-clay-terracotta/50 transition-all text-sm font-bold text-clay-rust-dark shadow-luxury hover:shadow-luxury-clay"
             >
               {showFilters ? 'Hide' : 'Show'} Filters
             </button>
             {showAvailableNow && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-orange-100 border border-orange-300 rounded-lg">
-                <span className="text-sm font-medium text-orange-800">Available Today</span>
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-clay-terracotta/20 border-2 border-clay-terracotta/40 rounded-2xl">
+                <span className="text-sm font-bold text-clay-terracotta">Available Today</span>
                 <button
                   onClick={() => setShowAvailableNow(false)}
-                  className="text-orange-600 hover:text-orange-800"
+                  className="text-clay-terracotta hover:text-clay-orange font-bold text-lg leading-none"
                   aria-label="Remove available now filter"
                 >
                   ×
@@ -235,13 +255,13 @@ export default function Home() {
             )}
           </div>
           {filteredCourts.length > 0 && (
-            <div className="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+            <div className="flex items-center gap-2 glass rounded-2xl p-2 shadow-luxury border border-clay-terracotta/30">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-3 rounded-xl transition-all ${
                   viewMode === 'list'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-gradient-clay text-white shadow-luxury-clay'
+                    : 'text-clay-rust-dark/60 hover:bg-clay-cream/50'
                 }`}
                 aria-label="List view"
               >
@@ -249,10 +269,10 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-3 rounded-xl transition-all ${
                   viewMode === 'map'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-gradient-clay text-white shadow-luxury-clay'
+                    : 'text-clay-rust-dark/60 hover:bg-clay-cream/50'
                 }`}
                 aria-label="Map view"
               >
@@ -273,16 +293,17 @@ export default function Home() {
         <div id="results-section" className="relative z-0">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading courts...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-clay-terracotta border-t-transparent mx-auto mb-4"></div>
+              <p className="text-clay-rust-dark font-medium">Loading courts...</p>
             </div>
           ) : searchQuery || showFilters ? (
             <>
               {/* Results Header */}
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+              <div className="mb-10">
+                <h2 className="text-4xl font-display font-bold text-clay-rust-dark mb-2">
                   {filteredCourts.length} {filteredCourts.length === 1 ? 'Court' : 'Courts'} Found
                 </h2>
+                <p className="text-clay-rust-dark/70 font-medium">Premium facilities available</p>
               </div>
 
               {/* Court Grid or Map View */}
@@ -302,9 +323,10 @@ export default function Home() {
                   </div>
                 )
               ) : (
-                <div className="text-center py-12 mb-12">
-                  <p className="text-gray-500 text-lg">No courts found matching your criteria.</p>
-                  <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or search query.</p>
+                <div className="text-center py-20 mb-12 glass rounded-3xl border-2 border-dashed border-clay-terracotta/30">
+                  <div className="text-7xl mb-6 animate-float">🎾</div>
+                  <p className="text-clay-rust-dark text-2xl font-display font-bold mb-3">No courts found</p>
+                  <p className="text-clay-rust-dark/70 text-sm font-medium">Try adjusting your filters or search query.</p>
                 </div>
               )}
             </>

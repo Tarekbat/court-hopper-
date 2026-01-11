@@ -31,19 +31,39 @@ interface MapViewProps {
 }
 
 export default function MapView({ courts, onCourtClick }: MapViewProps) {
+  // Filter courts with valid coordinates
+  const validCourts = courts.filter(
+    (court) =>
+      court.location?.coordinates?.lat &&
+      court.location?.coordinates?.lng &&
+      !isNaN(court.location.coordinates.lat) &&
+      !isNaN(court.location.coordinates.lng)
+  )
+
   // Calculate center point from all courts
-  const centerLat = courts.length > 0
-    ? courts.reduce((sum, court) => sum + court.location.coordinates.lat, 0) / courts.length
+  const centerLat = validCourts.length > 0
+    ? validCourts.reduce((sum, court) => sum + court.location.coordinates.lat, 0) / validCourts.length
     : 25.7617 // Default to Miami
-  const centerLng = courts.length > 0
-    ? courts.reduce((sum, court) => sum + court.location.coordinates.lng, 0) / courts.length
+  const centerLng = validCourts.length > 0
+    ? validCourts.reduce((sum, court) => sum + court.location.coordinates.lng, 0) / validCourts.length
     : -80.1918 // Default to Miami
+
+  if (validCourts.length === 0) {
+    return (
+      <div className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <p className="text-gray-500 text-lg mb-2">No courts found near you</p>
+          <p className="text-gray-400 text-sm">Try adjusting your search or filters to find courts in your area.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg border border-gray-200">
       <MapContainer
         center={[centerLat, centerLng]}
-        zoom={10}
+        zoom={validCourts.length === 1 ? 13 : 10}
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
@@ -51,7 +71,7 @@ export default function MapView({ courts, onCourtClick }: MapViewProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {courts.map((court) => (
+        {validCourts.map((court) => (
           <Marker
             key={court.id}
             position={[court.location.coordinates.lat, court.location.coordinates.lng]}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { createBrowserClient } from '@/lib/supabase-client'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { MapPin, Calendar, Clock, ArrowLeft, X } from '@/components/Icons'
@@ -20,7 +20,7 @@ interface Booking {
   price: number
   status: string
   isRecurring: boolean
-  recurringPattern?: string
+  recurringPattern?: string | any
   court: {
     id: string
     name: string
@@ -33,16 +33,42 @@ interface Booking {
 
 export default function BookingsPage() {
   const router = useRouter()
-  const { data: session } = useSession()
+  const [session, setSession] = useState<any>(null)
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (session) {
-      fetchBookings()
+    const checkAuth = async () => {
+      const supabase = createBrowserClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      setSession(session)
+      if (session) {
+        fetchBookings()
+      } else {
+        setLoading(false)
+      }
     }
-  }, [session])
+
+    checkAuth()
+
+    // Listen for auth changes
+    const supabase = createBrowserClient()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      if (session) {
+        fetchBookings()
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const fetchBookings = async () => {
     try {
@@ -84,7 +110,9 @@ export default function BookingsPage() {
   const isRecurring = (booking: Booking) => {
     if (!booking.isRecurring || !booking.recurringPattern) return false
     try {
-      const pattern = JSON.parse(booking.recurringPattern)
+      const pattern = typeof booking.recurringPattern === 'string' 
+        ? JSON.parse(booking.recurringPattern) 
+        : booking.recurringPattern
       return pattern.frequency === 'weekly'
     } catch {
       return false
@@ -112,7 +140,7 @@ export default function BookingsPage() {
                 <Calendar className="w-16 h-16 text-gray-400 mx-auto" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">No Bookings Yet</h2>
-              <p className="text-gray-600 mb-6">You haven't made any court reservations yet.</p>
+              <p className="text-gray-600 mb-6">You haven&apos;t made any court reservations yet.</p>
               <Link
                 href="/"
                 className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
@@ -196,7 +224,9 @@ export default function BookingsPage() {
                               <span className="font-semibold">Recurring:</span>{' '}
                               {(() => {
                                 try {
-                                  const pattern = JSON.parse(booking.recurringPattern)
+                                  const pattern = typeof booking.recurringPattern === 'string'
+                                    ? JSON.parse(booking.recurringPattern)
+                                    : booking.recurringPattern
                                   return `Every ${
                                     pattern.frequency === 'weekly'
                                       ? 'week'

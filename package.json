@@ -4,24 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "db:seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts"
+    "db:seed": "ts-node --project tsconfig.seed.json supabase/seed.ts",
+    "db:migrate": "ts-node --project tsconfig.seed.json scripts/migrate-to-supabase.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
     "@stripe/stripe-js": "^2.4.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/ssr": "^0.8.0",
     "@types/leaflet": "^1.9.21",
     "bcryptjs": "^2.4.3",
     "date-fns": "^3.0.6",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
-    "next": "^14.0.0",
-    "next-auth": "^5.0.0-beta.15",
+    "next": "^14.2.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
@@ -29,21 +27,19 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@prisma/client": "^5.7.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0",
+    "eslint-config-next": "^14.2.35",
     "postcss": "^8.4.31",
     "prisma": "^5.7.1",
     "ts-node": "^10.9.2",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.0.0"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options '{\"module\":\"commonjs\"}' prisma/seed.ts"
   }
 }
 

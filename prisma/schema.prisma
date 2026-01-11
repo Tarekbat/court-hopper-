@@ -30,12 +30,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -75,14 +75,15 @@ model Court {
   rating        Float     @default(0)
   reviewCount   Int       @default(0)
   totalCourts   Int
-  description   String    @db.Text
-  images        String    @db.Text // JSON array stored as string
-  amenities     String    @db.Text // JSON array stored as string
-  availableDays String    @db.Text // JSON array stored as string
+  description   String
+  images        String // JSON array stored as string
+  amenities     String // JSON array stored as string
+  availableDays String // JSON array stored as string
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
   reviews       Review[]
+  timeSlots     TimeSlot[]
 
   @@index([city])
   @@index([surface])
@@ -116,7 +117,7 @@ model Booking {
   price             Float
   status            String   @default("confirmed") // confirmed, cancelled, completed
   isRecurring       Boolean  @default(false)
-  recurringPattern  String?  @db.Text // JSON string
+  recurringPattern  String? // JSON string
   paymentIntentId   String?  // Stripe payment intent ID
   paymentStatus     String   @default("pending") // pending, paid, refunded
   createdAt         DateTime @default(now())
@@ -133,7 +134,7 @@ model Review {
   court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
   userId    String
   rating    Int      // 1-5
-  comment   String?  @db.Text
+  comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
