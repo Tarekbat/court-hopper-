@@ -1,0 +1,51 @@
+# Supabase Environment Variables
+
+When working with Supabase in this project, always use the following environment variables:
+
+## Client-Side (Browser) Usage
+- Use `NEXT_PUBLIC_SUPABASE_URL` for the Supabase project URL
+- Use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` for the publishable/anonymous key (client-side)
+
+## Server-Side Usage
+- Use `NEXT_PUBLIC_SUPABASE_URL` for the Supabase project URL
+- Use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` for the publishable/anonymous key (when creating server clients with user context)
+- Use `SUPABASE_SECRET_KEY` for the service role key (admin operations, server-side only)
+
+## Rules
+1. Never use `NEXT_PUBLIC_SUPABASE_ANON_KEY` - use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` instead
+2. Never use `SUPABASE_SERVICE_ROLE_KEY` - use `SUPABASE_SECRET_KEY` instead
+3. Always validate that these environment variables exist before using them
+4. The `NEXT_PUBLIC_` prefix means these variables are exposed to the browser - only use for non-sensitive keys
+5. `SUPABASE_SECRET_KEY` should NEVER be prefixed with `NEXT_PUBLIC_` as it's server-only
+
+## Example Usage
+```typescript
+// Client-side
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
+
+// Server-side admin operations
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
+```
+
+# Database Migrations and Seeds
+
+## Database Schema Changes
+- **ALWAYS use migrations** for any database schema changes (tables, columns, indexes, constraints, RLS policies, etc.)
+- Create new migration files in `supabase/migrations/` with sequential numbering (e.g., `002_add_new_table.sql`)
+- Never modify existing migration files that have already been applied to production
+- Use `supabase db push` or `supabase migration up` to apply migrations
+
+## Seed Files
+- **NEVER rewrite or modify** the seed file (`supabase/seed.sql`)
+- The seed file contains initial data and should remain stable
+- If you need to add or modify seed data, create a new migration file instead
+- Seed files are for initial data setup only, not for schema changes or data updates
+
+## Rules
+1. All database schema changes must go in migration files
+2. Never edit `supabase/seed.sql` - it is read-only
+3. Use migrations for both schema changes AND data updates/changes
+4. Keep migrations idempotent when possible (use `IF NOT EXISTS`, `ON CONFLICT`, etc.)
+
