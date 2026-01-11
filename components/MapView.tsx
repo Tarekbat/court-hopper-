@@ -33,12 +33,27 @@ interface MapViewProps {
 export default function MapView({ courts, onCourtClick }: MapViewProps) {
   // Filter courts with valid coordinates
   const validCourts = courts.filter(
-    (court) =>
-      court.location?.coordinates?.lat &&
-      court.location?.coordinates?.lng &&
-      !isNaN(court.location.coordinates.lat) &&
-      !isNaN(court.location.coordinates.lng)
+    (court) => {
+      const lat = court.location?.coordinates?.lat
+      const lng = court.location?.coordinates?.lng
+      return (
+        lat != null &&
+        lng != null &&
+        !isNaN(Number(lat)) &&
+        !isNaN(Number(lng)) &&
+        Number(lat) !== 0 &&
+        Number(lng) !== 0
+      )
+    }
   )
+  
+  // Debug: Log if we have courts but no valid coordinates
+  if (courts.length > 0 && validCourts.length === 0) {
+    console.warn('MapView: Courts provided but none have valid coordinates', {
+      totalCourts: courts.length,
+      sampleCourt: courts[0],
+    })
+  }
 
   // Calculate center point from all courts
   const centerLat = validCourts.length > 0
@@ -49,11 +64,25 @@ export default function MapView({ courts, onCourtClick }: MapViewProps) {
     : -80.1918 // Default to Miami
 
   if (validCourts.length === 0) {
+    // If we have courts but no valid coordinates, show a helpful message
+    if (courts.length > 0) {
+      return (
+        <div className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg border-2 border-miami-turquoise/30 flex items-center justify-center bg-gradient-to-br from-miami-sand-light to-white">
+          <div className="text-center px-6">
+            <div className="text-6xl mb-4">🗺️</div>
+            <p className="text-gray-900 text-xl font-bold mb-2">No valid locations found</p>
+            <p className="text-gray-700 text-sm">Some courts may be missing location data. Try the list view instead.</p>
+          </div>
+        </div>
+      )
+    }
+    // If no courts at all
     return (
-      <div className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg border border-gray-200 flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-gray-500 text-lg mb-2">No courts found near you</p>
-          <p className="text-gray-400 text-sm">Try adjusting your search or filters to find courts in your area.</p>
+      <div className="w-full h-[600px] rounded-lg overflow-hidden shadow-lg border-2 border-miami-turquoise/30 flex items-center justify-center bg-gradient-to-br from-miami-sand-light to-white">
+        <div className="text-center px-6">
+          <div className="text-6xl mb-4">🎾</div>
+          <p className="text-gray-900 text-xl font-bold mb-2">No courts found</p>
+          <p className="text-gray-700 text-sm">Try adjusting your filters or search query.</p>
         </div>
       </div>
     )

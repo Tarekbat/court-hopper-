@@ -1,4 +1,4 @@
-import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 // Client-side client (for use in client components)
 export function createBrowserClient() {
@@ -9,6 +9,12 @@ export function createBrowserClient() {
     throw new Error('Missing Supabase environment variables')
   }
 
-  return createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
 }
 

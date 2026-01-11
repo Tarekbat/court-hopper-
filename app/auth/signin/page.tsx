@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
-import { createBrowserClient } from '@/lib/supabase-client'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from '@/components/Icons'
+import { createBrowserClient } from '@/lib/supabase-client'
 
-function SignInForm() {
+export default function SignInPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
@@ -35,7 +35,7 @@ function SignInForm() {
 
       if (signInError) {
         setError('Invalid email or password')
-      } else if (data.user) {
+      } else if (data.session) {
         router.push('/')
         router.refresh()
       } else {
@@ -50,21 +50,20 @@ function SignInForm() {
 
   return (
     <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7z' fill='%23d4af37' fill-opacity='0.4'/%3E%3C/svg%3E")`
-      }}></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20"></div>
+      <div className="absolute inset-0 art-deco-pattern opacity-15"></div>
       <div className="max-w-md w-full animate-fade-in relative z-10">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-white/80 hover:text-clay-cream mb-8 transition-colors group"
+          className="inline-flex items-center gap-2 text-white/90 hover:text-miami-turquoise-light mb-8 transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span className="font-semibold">Back to home</span>
         </Link>
 
-        <div className="glass rounded-3xl shadow-luxury p-10 border border-clay-terracotta/30">
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border-2 border-miami-turquoise/30">
           <div className="text-center mb-10">
-            <div className="bg-gradient-clay p-5 rounded-3xl inline-flex items-center justify-center w-24 h-24 mb-6 shadow-luxury-clay">
+            <div className="bg-gradient-to-br from-miami-turquoise via-miami-pink to-miami-coral p-5 rounded-3xl inline-flex items-center justify-center w-24 h-24 mb-6 shadow-lg">
               <span className="text-white text-5xl font-bold">🎾</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-display font-bold text-clay-rust-dark mb-3">Welcome Back</h1>
@@ -72,8 +71,8 @@ function SignInForm() {
           </div>
 
           {success && (
-            <div className="mb-6 p-4 bg-clay-terracotta/20 border-2 border-clay-terracotta/40 rounded-xl animate-scale-in">
-              <p className="text-sm font-semibold text-clay-terracotta">{success}</p>
+            <div className="mb-6 p-4 bg-miami-turquoise/20 border-2 border-miami-turquoise/40 rounded-xl animate-scale-in">
+              <p className="text-sm font-semibold text-miami-turquoise-dark">{success}</p>
             </div>
           )}
           {error && (
@@ -93,7 +92,7 @@ function SignInForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-5 py-4 border-2 border-clay-terracotta/30 rounded-2xl focus:ring-2 focus:ring-clay-terracotta focus:border-clay-terracotta text-clay-rust-dark bg-clay-cream transition-all hover:border-clay-terracotta/50"
+                className="w-full px-5 py-4 border-2 border-miami-turquoise/30 rounded-2xl focus:ring-2 focus:ring-miami-turquoise focus:border-miami-turquoise text-clay-rust-dark bg-miami-sand-light transition-all hover:border-miami-pink/50"
                 placeholder="you@example.com"
               />
             </div>
@@ -108,7 +107,7 @@ function SignInForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-5 py-4 border-2 border-clay-terracotta/30 rounded-2xl focus:ring-2 focus:ring-clay-terracotta focus:border-clay-terracotta text-clay-rust-dark bg-clay-cream transition-all hover:border-clay-terracotta/50"
+                className="w-full px-5 py-4 border-2 border-miami-turquoise/30 rounded-2xl focus:ring-2 focus:ring-miami-turquoise focus:border-miami-turquoise text-clay-rust-dark bg-miami-sand-light transition-all hover:border-miami-pink/50"
                 placeholder="••••••••"
               />
             </div>
@@ -116,7 +115,7 @@ function SignInForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-clay text-white py-4 rounded-2xl font-bold text-lg hover:shadow-luxury-clay transition-all disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none mt-8"
+              className="w-full bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none mt-8"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -131,8 +130,8 @@ function SignInForm() {
 
           <div className="mt-8 text-center">
             <p className="text-sm text-clay-rust-dark/70">
-              Don&apos;t have an account?{' '}
-              <Link href="/auth/signup" className="text-clay-terracotta hover:text-clay-orange font-bold transition-colors">
+              Don't have an account?{' '}
+              <Link href="/auth/signup" className="text-miami-turquoise hover:text-miami-ocean font-bold transition-colors">
                 Sign up
               </Link>
             </p>
@@ -143,14 +142,3 @@ function SignInForm() {
   )
 }
 
-export default function SignInPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4">
-        <div className="text-white">Loading...</div>
-      </div>
-    }>
-      <SignInForm />
-    </Suspense>
-  )
-}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { CourtSurface } from '@/types'
-import { Filter } from '@/components/Icons'
+import { Filter, Lightbulb, Car, Restroom, Droplet, ShoppingBag, Wifi, Shield, Home } from '@/components/Icons'
 
 interface FilterBarProps {
   onFilterChange: (filters: FilterState) => void
@@ -55,11 +55,11 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
   }
 
   return (
-    <div className="glass rounded-3xl shadow-luxury p-8 mb-10 border border-clay-terracotta/20">
+    <div className="bg-white rounded-3xl shadow-luxury p-8 mb-10 border-2 border-miami-turquoise/20">
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-3 text-clay-rust-dark hover:text-clay-terracotta transition-colors font-bold text-xl"
+          className="flex items-center gap-3 text-gray-900 hover:text-miami-turquoise transition-colors font-bold text-xl"
         >
           <Filter className="w-6 h-6" />
           <span className="font-display">Filters</span>
@@ -67,7 +67,7 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
         {isOpen && (
           <button
             onClick={resetFilters}
-            className="text-sm text-clay-terracotta hover:text-clay-orange font-bold px-4 py-2 rounded-xl hover:bg-clay-terracotta/10 transition-all border border-clay-terracotta/30"
+            className="text-sm text-miami-turquoise hover:text-miami-ocean font-bold px-4 py-2 rounded-xl hover:bg-miami-turquoise/10 transition-all border-2 border-miami-turquoise/30"
           >
             Reset All
           </button>
@@ -75,10 +75,10 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
       </div>
 
       {isOpen && (
-        <div className="space-y-8 pt-6 border-t-2 border-clay-terracotta/30">
+        <div className="space-y-8 pt-6 border-t-2 border-miami-turquoise/30">
           {/* Surface Type */}
           <div>
-            <label className="block text-sm font-bold text-clay-rust-dark mb-4 font-display">
+            <label className="block text-sm font-bold text-gray-900 mb-4 font-display">
               Court Surface
             </label>
             <div className="flex flex-wrap gap-3">
@@ -88,8 +88,8 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
                   onClick={() => updateFilter('surface', surface)}
                   className={`px-5 py-3 rounded-xl text-sm font-bold transition-all ${
                     filters.surface === surface
-                      ? 'bg-gradient-clay text-white shadow-luxury-clay'
-                      : 'bg-clay-cream text-clay-rust-dark hover:bg-clay-cream-dark border-2 border-clay-terracotta/20 hover:border-clay-terracotta/40'
+                      ? 'bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white shadow-md'
+                      : 'bg-white text-gray-800 hover:bg-gray-50 border-2 border-gray-300 hover:border-miami-turquoise/50'
                   }`}
                 >
                   {surface}
@@ -100,8 +100,8 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
 
           {/* Price Range */}
           <div>
-            <label className="block text-sm font-bold text-clay-rust-dark mb-4 font-display">
-              Max Price: <span className="text-clay-terracotta">${filters.maxPrice}/hr</span>
+            <label className="block text-sm font-bold text-gray-900 mb-4 font-display">
+              Max Price: <span className="text-miami-turquoise">${filters.maxPrice}/hr</span>
             </label>
             <input
               type="range"
@@ -109,17 +109,17 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
               max="100"
               value={filters.maxPrice}
               onChange={(e) => updateFilter('maxPrice', parseInt(e.target.value))}
-              className="w-full h-3 bg-clay-cream rounded-lg appearance-none cursor-pointer accent-clay-terracotta"
+              className="w-full h-3 bg-miami-sand-light rounded-lg appearance-none cursor-pointer accent-miami-turquoise"
               style={{
-                background: `linear-gradient(to right, #C4621A 0%, #C4621A ${filters.maxPrice}%, #FFF8DC ${filters.maxPrice}%, #FFF8DC 100%)`
+                background: `linear-gradient(to right, #40E0D0 0%, #40E0D0 ${filters.maxPrice}%, #FFF8DC ${filters.maxPrice}%, #FFF8DC 100%)`
               }}
             />
           </div>
 
           {/* Rating */}
           <div>
-            <label className="block text-sm font-bold text-clay-rust-dark mb-4 font-display">
-              Min Rating: <span className="text-clay-terracotta">{filters.minRating.toFixed(1)} ⭐</span>
+            <label className="block text-sm font-bold text-gray-900 mb-4 font-display">
+              Min Rating: <span className="text-miami-turquoise">{filters.minRating.toFixed(1)} ⭐</span>
             </label>
             <input
               type="range"
@@ -128,17 +128,17 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
               step="0.1"
               value={filters.minRating}
               onChange={(e) => updateFilter('minRating', parseFloat(e.target.value))}
-              className="w-full h-3 bg-clay-cream rounded-lg appearance-none cursor-pointer accent-clay-terracotta"
+              className="w-full h-3 bg-miami-sand-light rounded-lg appearance-none cursor-pointer accent-miami-turquoise"
               style={{
-                background: `linear-gradient(to right, #C4621A 0%, #C4621A ${(filters.minRating / 5) * 100}%, #FFF8DC ${(filters.minRating / 5) * 100}%, #FFF8DC 100%)`
+                background: `linear-gradient(to right, #40E0D0 0%, #40E0D0 ${(filters.minRating / 5) * 100}%, #FFF8DC ${(filters.minRating / 5) * 100}%, #FFF8DC 100%)`
               }}
             />
           </div>
 
           {/* Distance */}
           <div>
-            <label className="block text-sm font-bold text-clay-rust-dark mb-4 font-display">
-              Max Distance: <span className="text-clay-terracotta">{filters.maxDistance} mi</span>
+            <label className="block text-sm font-bold text-gray-900 mb-4 font-display">
+              Max Distance: <span className="text-miami-turquoise">{filters.maxDistance} mi</span>
             </label>
             <input
               type="range"
@@ -146,32 +146,59 @@ export default function FilterBar({ onFilterChange }: FilterBarProps) {
               max="30"
               value={filters.maxDistance}
               onChange={(e) => updateFilter('maxDistance', parseInt(e.target.value))}
-              className="w-full h-3 bg-clay-cream rounded-lg appearance-none cursor-pointer accent-clay-terracotta"
+              className="w-full h-3 bg-miami-sand-light rounded-lg appearance-none cursor-pointer accent-miami-turquoise"
               style={{
-                background: `linear-gradient(to right, #C4621A 0%, #C4621A ${(filters.maxDistance / 30) * 100}%, #FFF8DC ${(filters.maxDistance / 30) * 100}%, #FFF8DC 100%)`
+                background: `linear-gradient(to right, #40E0D0 0%, #40E0D0 ${(filters.maxDistance / 30) * 100}%, #FFF8DC ${(filters.maxDistance / 30) * 100}%, #FFF8DC 100%)`
               }}
             />
           </div>
 
           {/* Amenities */}
           <div>
-            <label className="block text-sm font-bold text-clay-rust-dark mb-4 font-display">
+            <label className="block text-sm font-bold text-gray-900 mb-4 font-display">
               Amenities
             </label>
             <div className="flex flex-wrap gap-3">
-              {amenitiesList.map((amenity) => (
-                <button
-                  key={amenity}
-                  onClick={() => toggleAmenity(amenity)}
-                  className={`px-5 py-3 rounded-xl text-sm font-bold transition-all ${
-                    filters.amenities.includes(amenity)
-                      ? 'bg-gradient-clay text-white shadow-luxury-clay'
-                      : 'bg-clay-cream text-clay-rust-dark hover:bg-clay-cream-dark border-2 border-clay-terracotta/20 hover:border-clay-terracotta/40'
-                  }`}
-                >
-                  {amenity}
-                </button>
-              ))}
+              {amenitiesList.map((amenity) => {
+                const amenityIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+                  'Lights': Lightbulb,
+                  'Lighting': Lightbulb,
+                  'Parking': Car,
+                  'Restrooms': Restroom,
+                  'Restroom': Restroom,
+                  'Water Fountains': Droplet,
+                  'Water': Droplet,
+                  'Pro Shop': ShoppingBag,
+                  'Shop': ShoppingBag,
+                  'WiFi': Wifi,
+                  'Wifi': Wifi,
+                  'Security': Shield,
+                  'Indoor': Home,
+                  'Lockers': Shield,
+                }
+                const getIcon = (name: string) => {
+                  const iconKey = Object.keys(amenityIcons).find(key => 
+                    name.toLowerCase().includes(key.toLowerCase()) || 
+                    key.toLowerCase().includes(name.toLowerCase())
+                  )
+                  return iconKey ? amenityIcons[iconKey] : null
+                }
+                const IconComponent = getIcon(amenity)
+                return (
+                  <button
+                    key={amenity}
+                    onClick={() => toggleAmenity(amenity)}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold transition-all ${
+                      filters.amenities.includes(amenity)
+                        ? 'bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white shadow-md'
+                        : 'bg-white text-gray-800 hover:bg-gray-50 border-2 border-gray-300 hover:border-miami-turquoise/50'
+                    }`}
+                  >
+                    {IconComponent && <IconComponent className={`w-4 h-4 ${filters.amenities.includes(amenity) ? 'text-white' : 'text-miami-turquoise'}`} />}
+                    {amenity}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

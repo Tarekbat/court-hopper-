@@ -42,7 +42,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchCourts = async () => {
@@ -58,6 +57,13 @@ export default function Home() {
       if (!response.ok) throw new Error('Failed to fetch courts')
       const data = await response.json()
       
+      // If database is empty or returns no results, use mock data as fallback
+      if (!data || data.length === 0) {
+        const { mockCourts } = await import('@/data/mockCourts')
+        setCourts(mockCourts)
+        return
+      }
+      
       // Transform API data to match Court type
       const transformedCourts: Court[] = data.map((court: any) => ({
         id: court.id,
@@ -68,8 +74,8 @@ export default function Home() {
           state: court.state,
           zipCode: court.zipCode,
           coordinates: {
-            lat: court.latitude,
-            lng: court.longitude,
+            lat: court.latitude || court.location?.coordinates?.lat || null,
+            lng: court.longitude || court.location?.coordinates?.lng || null,
           },
         },
         distance: court.distance || 0,
@@ -92,6 +98,9 @@ export default function Home() {
       setCourts(transformedCourts)
     } catch (error) {
       console.error('Error fetching courts:', error)
+      // Fallback to mock data if API fails
+      const { mockCourts } = await import('@/data/mockCourts')
+      setCourts(mockCourts)
     } finally {
       setLoading(false)
     }
@@ -99,7 +108,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchCourts()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters])
 
   const filteredCourts = useMemo(() => {
@@ -144,44 +152,50 @@ export default function Home() {
   }, [courts, searchQuery, filters, showAvailableNow])
 
   return (
-    <div className="min-h-screen bg-clay-cream">
+    <div className="min-h-screen bg-gradient-to-b from-miami-sand-light via-white to-miami-sand-light">
       <Header />
 
-      {/* Hero Section */}
-      <section className="bg-hero-gradient text-white py-32 md:py-40 relative z-10 overflow-hidden">
-        {/* Dark overlay for better contrast */}
-        <div className="absolute inset-0 bg-clay-rust-dark/50"></div>
+      {/* Hero Section - Miami South Beach Aesthetic */}
+      <section className="bg-hero-gradient text-white py-24 md:py-32 relative z-10 overflow-hidden">
+        {/* Dark overlay for better text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
         
-        {/* Clay court pattern overlay */}
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23 11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 4c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM60 91c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM35 41c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 60c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%23FFF8DC' fill-opacity='0.3' fill-rule='evenodd'/%3E%3C/svg%3E")`
-        }}></div>
+        {/* Art Deco geometric pattern */}
+        <div className="absolute inset-0 art-deco-pattern opacity-10"></div>
         
-        {/* Terracotta accent lines */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-terracotta"></div>
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-terracotta"></div>
+        {/* Miami beach wave pattern */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-miami-ocean/40 to-transparent"></div>
+        
+        {/* Accent lines - Miami colors */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-miami-turquoise via-miami-pink via-miami-coral to-miami-turquoise"></div>
+        <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-miami-turquoise via-miami-pink via-miami-coral to-miami-turquoise"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-12 animate-fade-in">
-            <div className="inline-block mb-6 px-4 py-2 bg-clay-terracotta/30 backdrop-blur-sm rounded-full border border-clay-terracotta/50">
-              <span className="text-clay-cream text-sm font-bold tracking-[0.2em] uppercase">Elite Experience</span>
+          <div className="text-center mb-10 animate-fade-in">
+            {/* Badge */}
+            <div className="inline-flex items-center justify-center mb-6 px-5 py-2.5 bg-black/40 backdrop-blur-xl rounded-full border-2 border-white/60 shadow-2xl">
+              <span className="text-white text-xs font-bold tracking-[0.3em] uppercase" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>✨ ELITE EXPERIENCE ✨</span>
             </div>
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-display font-bold mb-8 leading-[1.1]">
-              <span className="text-white" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.6)' }}>Reserve Your</span>
-              <span className="block text-clay-cream mt-2" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.8), 0 2px 8px rgba(0,0,0,0.6)' }}>Perfect Court</span>
+            
+            {/* Main heading - Clean and centered */}
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-extrabold mb-6 leading-tight">
+              <span className="block text-white drop-shadow-2xl" style={{ textShadow: '0 6px 30px rgba(0,0,0,0.9), 0 3px 12px rgba(0,0,0,0.7)' }}>Reserve Your</span>
+              <span className="block text-miami-turquoise-light mt-2 drop-shadow-2xl" style={{ textShadow: '0 6px 30px rgba(0,0,0,0.9), 0 3px 12px rgba(0,0,0,0.7)' }}>Perfect Court</span>
             </h1>
-            <p className="text-xl md:text-2xl text-white max-w-3xl mx-auto font-semibold leading-relaxed" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7), 0 1px 4px rgba(0,0,0,0.5)' }}>
+            
+            {/* Description */}
+            <p className="text-lg md:text-xl text-white max-w-2xl mx-auto font-semibold leading-relaxed drop-shadow-lg" style={{ textShadow: '0 3px 15px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.6)' }}>
               Exclusive access to premium tennis facilities. Experience luxury, precision, and excellence.
             </p>
           </div>
           
-          {/* Search Bar in Hero */}
-          <div className="max-w-4xl mx-auto mb-12 animate-slide-up">
+          {/* Search Bar in Hero - Centered */}
+          <div className="max-w-3xl mx-auto mb-10 animate-slide-up">
             <SearchBar onSearch={setSearchQuery} />
           </div>
 
           {/* Quick Actions */}
-          <div className="max-w-6xl mx-auto animate-slide-up">
+          <div className="max-w-5xl mx-auto animate-slide-up">
             <QuickActions 
               onMapViewClick={() => {
                 setShowAvailableNow(false)
@@ -237,16 +251,16 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-6 py-3 glass border border-clay-terracotta/30 rounded-2xl hover:border-clay-terracotta/50 transition-all text-sm font-bold text-clay-rust-dark shadow-luxury hover:shadow-luxury-clay"
+              className="px-6 py-3 bg-white border-2 border-miami-turquoise/40 rounded-2xl hover:border-miami-pink transition-all text-sm font-bold text-gray-900 shadow-md hover:shadow-lg"
             >
               {showFilters ? 'Hide' : 'Show'} Filters
             </button>
             {showAvailableNow && (
-              <div className="flex items-center gap-2 px-5 py-2.5 bg-clay-terracotta/20 border-2 border-clay-terracotta/40 rounded-2xl">
-                <span className="text-sm font-bold text-clay-terracotta">Available Today</span>
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-miami-coral/20 border-2 border-miami-coral/40 rounded-2xl">
+                <span className="text-sm font-bold text-miami-coral">Available Today</span>
                 <button
                   onClick={() => setShowAvailableNow(false)}
-                  className="text-clay-terracotta hover:text-clay-orange font-bold text-lg leading-none"
+                  className="text-miami-coral hover:text-miami-coral-dark font-bold text-lg leading-none"
                   aria-label="Remove available now filter"
                 >
                   ×
@@ -255,13 +269,13 @@ export default function Home() {
             )}
           </div>
           {filteredCourts.length > 0 && (
-            <div className="flex items-center gap-2 glass rounded-2xl p-2 shadow-luxury border border-clay-terracotta/30">
+            <div className="flex items-center gap-2 bg-white rounded-2xl p-1.5 shadow-md border-2 border-miami-turquoise/30">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-3 rounded-xl transition-all ${
+                className={`p-2.5 rounded-xl transition-all ${
                   viewMode === 'list'
-                    ? 'bg-gradient-clay text-white shadow-luxury-clay'
-                    : 'text-clay-rust-dark/60 hover:bg-clay-cream/50'
+                    ? 'bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white shadow-md'
+                    : 'text-gray-700 border-2 border-gray-200 hover:border-miami-turquoise/50 hover:bg-miami-turquoise/5'
                 }`}
                 aria-label="List view"
               >
@@ -269,10 +283,10 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`p-3 rounded-xl transition-all ${
+                className={`p-2.5 rounded-xl transition-all ${
                   viewMode === 'map'
-                    ? 'bg-gradient-clay text-white shadow-luxury-clay'
-                    : 'text-clay-rust-dark/60 hover:bg-clay-cream/50'
+                    ? 'bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white shadow-md'
+                    : 'text-gray-700 border-2 border-gray-200 hover:border-miami-turquoise/50 hover:bg-miami-turquoise/5'
                 }`}
                 aria-label="Map view"
               >
@@ -293,17 +307,17 @@ export default function Home() {
         <div id="results-section" className="relative z-0">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-2 border-clay-terracotta border-t-transparent mx-auto mb-4"></div>
-              <p className="text-clay-rust-dark font-medium">Loading courts...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-miami-turquoise border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-900 font-medium">Loading courts...</p>
             </div>
           ) : searchQuery || showFilters ? (
             <>
               {/* Results Header */}
               <div className="mb-10">
-                <h2 className="text-4xl font-display font-bold text-clay-rust-dark mb-2">
+                <h2 className="text-4xl font-display font-bold text-gray-900 mb-2">
                   {filteredCourts.length} {filteredCourts.length === 1 ? 'Court' : 'Courts'} Found
                 </h2>
-                <p className="text-clay-rust-dark/70 font-medium">Premium facilities available</p>
+                <p className="text-gray-700 font-medium">Premium facilities available</p>
               </div>
 
               {/* Court Grid or Map View */}
@@ -325,8 +339,8 @@ export default function Home() {
               ) : (
                 <div className="text-center py-20 mb-12 glass rounded-3xl border-2 border-dashed border-clay-terracotta/30">
                   <div className="text-7xl mb-6 animate-float">🎾</div>
-                  <p className="text-clay-rust-dark text-2xl font-display font-bold mb-3">No courts found</p>
-                  <p className="text-clay-rust-dark/70 text-sm font-medium">Try adjusting your filters or search query.</p>
+                  <p className="text-gray-900 text-2xl font-display font-bold mb-3">No courts found</p>
+                  <p className="text-gray-700 text-sm font-medium">Try adjusting your filters or search query.</p>
                 </div>
               )}
             </>

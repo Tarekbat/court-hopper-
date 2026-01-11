@@ -30,8 +30,8 @@ export default function FeaturedCourts({ excludeIds = [] }: FeaturedCourtsProps)
   return (
     <div className="animate-fade-in">
       <div className="mb-10">
-        <h2 className="text-4xl font-display font-bold text-clay-rust-dark mb-2">Featured Courts</h2>
-        <p className="text-clay-rust-dark/70 text-lg font-medium">Top-rated courts near you</p>
+        <h2 className="text-4xl font-display font-bold text-gray-900 mb-2">Featured Courts</h2>
+        <p className="text-gray-700 text-lg font-medium">Top-rated courts near you</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {featuredCourts.map((court) => (

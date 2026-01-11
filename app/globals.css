@@ -52,7 +52,13 @@ h1, h2, h3, h4, h5, h6 {
   }
   
   .gradient-hero {
-    background: linear-gradient(135deg, #8B4513 0%, #A0522D 25%, #C4621A 50%, #A0522D 75%, #8B4513 100%);
+    background: linear-gradient(135deg, #00BFFF 0%, #40E0D0 20%, #FF69B4 40%, #FF7F50 60%, #98FB98 80%, #00BFFF 100%);
+  }
+  
+  .art-deco-pattern {
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px),
+      repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px);
   }
   
   .gradient-clay {
@@ -101,6 +107,16 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #D2691E 0%, #C4621A 100%);
+}
+
+/* Hide scrollbar for day navigation */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Fix for Leaflet map z-index issues */
