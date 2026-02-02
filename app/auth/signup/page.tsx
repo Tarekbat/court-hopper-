@@ -81,7 +81,7 @@ export default function SignUpPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-5 py-4 border-2 border-miami-turquoise/30 rounded-2xl focus:ring-2 focus:ring-miami-turquoise focus:border-miami-turquoise text-clay-rust-dark bg-miami-sand-light transition-all hover:border-miami-pink/50"
+                className="w-full px-5 py-4 border-2 border-clay-terracotta/30 rounded-2xl focus:ring-2 focus:ring-clay-terracotta focus:border-clay-terracotta text-clay-rust-dark bg-tropical-cream transition-all hover:border-tropical-sage/50"
                 placeholder="John Doe"
               />
             </div>
@@ -96,7 +96,7 @@ export default function SignUpPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-5 py-4 border-2 border-miami-turquoise/30 rounded-2xl focus:ring-2 focus:ring-miami-turquoise focus:border-miami-turquoise text-clay-rust-dark bg-miami-sand-light transition-all hover:border-miami-pink/50"
+                className="w-full px-5 py-4 border-2 border-clay-terracotta/30 rounded-2xl focus:ring-2 focus:ring-clay-terracotta focus:border-clay-terracotta text-clay-rust-dark bg-tropical-cream transition-all hover:border-tropical-sage/50"
                 placeholder="you@example.com"
               />
             </div>
@@ -112,7 +112,7 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-5 py-4 border-2 border-miami-turquoise/30 rounded-2xl focus:ring-2 focus:ring-miami-turquoise focus:border-miami-turquoise text-clay-rust-dark bg-miami-sand-light transition-all hover:border-miami-pink/50"
+                className="w-full px-5 py-4 border-2 border-clay-terracotta/30 rounded-2xl focus:ring-2 focus:ring-clay-terracotta focus:border-clay-terracotta text-clay-rust-dark bg-tropical-cream transition-all hover:border-tropical-sage/50"
                 placeholder="••••••••"
               />
               <p className="mt-2 text-xs text-clay-rust-dark/70 font-semibold">Must be at least 6 characters</p>
@@ -121,7 +121,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-br from-miami-turquoise to-miami-ocean text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none mt-8"
+              className="w-full bg-clay-gradient text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none mt-8"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -137,7 +137,7 @@ export default function SignUpPage() {
           <div className="mt-8 text-center">
             <p className="text-sm text-clay-rust-dark/70">
               Already have an account?{' '}
-              <Link href="/auth/signin" className="text-miami-turquoise hover:text-miami-ocean font-bold transition-colors">
+              <Link href="/auth/signin" className="text-clay-terracotta hover:text-clay-rust font-bold transition-colors">
                 Sign in
               </Link>
             </p>

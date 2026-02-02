@@ -1,0 +1,309 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { z } from 'zod'
+
+const updateProfileSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  phone_number: z.string().optional().nullable(),
+  image: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+})
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient(request)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get user profile from public.users table
+    // Try to select phone_number and is_admin, but handle gracefully if columns don't exist yet
+    let selectFields = 'id, name, email, image, created_at, updated_at'
+    try {
+      // Try with all optional columns first
+      let user: any = null
+      let error: any = null
+      
+      const result = await supabase
+        .from('users')
+        .select(`${selectFields}, phone_number, is_admin`)
+        .eq('id', session.user.id)
+        .single()
+
+      user = result.data
+      error = result.error
+
+      // If error is about missing columns, try without them
+      if (error && error.code === '42703') {
+        // Try with just phone_number (if is_admin doesn't exist)
+        if (error.message?.includes('is_admin')) {
+          const resultWithoutAdmin = await supabase
+            .from('users')
+            .select(`${selectFields}, phone_number`)
+            .eq('id', session.user.id)
+            .single()
+          
+          if (resultWithoutAdmin.error) {
+            // If still error and it's about phone_number, try without both
+            if (resultWithoutAdmin.error.code === '42703' && resultWithoutAdmin.error.message?.includes('phone_number')) {
+              const resultBasic = await supabase
+                .from('users')
+                .select(selectFields)
+                .eq('id', session.user.id)
+                .single()
+              
+              if (resultBasic.error) {
+                console.error('Error fetching user profile:', resultBasic.error)
+                return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+              }
+
+              const userBasic = resultBasic.data
+              if (!userBasic) {
+                return NextResponse.json({ error: 'User not found' }, { status: 404 })
+              }
+
+              type UserProfile = {
+                id: string
+                name: string
+                email: string
+                image: string | null
+                created_at: string
+                updated_at: string
+              }
+              
+              const userData = userBasic as unknown as UserProfile
+
+              return NextResponse.json({
+                id: userData.id,
+                name: userData.name,
+                email: userData.email,
+                phone_number: null,
+                image: userData.image,
+                is_admin: false,
+                created_at: userData.created_at,
+                updated_at: userData.updated_at,
+              })
+            }
+            
+            console.error('Error fetching user profile:', resultWithoutAdmin.error)
+            return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+          }
+
+          user = resultWithoutAdmin.data
+          error = resultWithoutAdmin.error
+        } else if (error.message?.includes('phone_number')) {
+          // Try without phone_number but with is_admin
+          const resultWithoutPhone = await supabase
+            .from('users')
+            .select(`${selectFields}, is_admin`)
+            .eq('id', session.user.id)
+            .single()
+          
+          if (resultWithoutPhone.error) {
+            // If still error and it's about is_admin, try without both
+            if (resultWithoutPhone.error.code === '42703' && resultWithoutPhone.error.message?.includes('is_admin')) {
+              const resultBasic = await supabase
+                .from('users')
+                .select(selectFields)
+                .eq('id', session.user.id)
+                .single()
+              
+              if (resultBasic.error) {
+                console.error('Error fetching user profile:', resultBasic.error)
+                return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+              }
+
+              const userBasic = resultBasic.data
+              if (!userBasic) {
+                return NextResponse.json({ error: 'User not found' }, { status: 404 })
+              }
+
+              type UserProfile = {
+                id: string
+                name: string
+                email: string
+                image: string | null
+                created_at: string
+                updated_at: string
+              }
+              
+              const userData = userBasic as unknown as UserProfile
+
+              return NextResponse.json({
+                id: userData.id,
+                name: userData.name,
+                email: userData.email,
+                phone_number: null,
+                image: userData.image,
+                is_admin: false,
+                created_at: userData.created_at,
+                updated_at: userData.updated_at,
+              })
+            }
+            
+            console.error('Error fetching user profile:', resultWithoutPhone.error)
+            return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+          }
+
+          user = resultWithoutPhone.data
+          error = resultWithoutPhone.error
+        } else {
+          console.error('Error fetching user profile:', error)
+          return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+        }
+      }
+
+      if (error) {
+        console.error('Error fetching user profile:', error)
+        return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+      }
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      }
+
+      // Type assertion to ensure TypeScript understands the structure
+      type UserProfileWithOptionalFields = {
+        id: string
+        name: string
+        email: string
+        phone_number?: string | null
+        image: string | null
+        is_admin?: boolean | null
+        created_at: string
+        updated_at: string
+      }
+      
+      const userData = user as unknown as UserProfileWithOptionalFields
+
+      return NextResponse.json({
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        phone_number: userData.phone_number ?? null,
+        image: userData.image,
+        is_admin: userData.is_admin === true,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at,
+      })
+    } catch (err) {
+      console.error('Error in GET /api/profile:', err)
+      return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+    }
+  } catch (error) {
+    console.error('Error in GET /api/profile:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient(request)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const validatedData = updateProfileSchema.parse(body)
+
+    // Update user profile in public.users table
+    const updateData: any = {}
+    if (validatedData.name !== undefined) {
+      updateData.name = validatedData.name
+    }
+    // Only include phone_number if the column exists (migration applied)
+    if (validatedData.phone_number !== undefined) {
+      // Check if phone_number column exists by trying to update it
+      // If it fails, we'll skip it
+      updateData.phone_number = validatedData.phone_number || null
+    }
+    if (validatedData.image !== undefined) {
+      updateData.image = validatedData.image || null
+    }
+
+    // Try to update with phone_number first
+    let updatedUser: any
+    let error: any
+    
+    const updateResult = await supabase
+      .from('users')
+      .update(updateData)
+      .eq('id', session.user.id)
+      .select('id, name, email, phone_number, image, created_at, updated_at')
+      .single()
+
+    updatedUser = updateResult.data
+    error = updateResult.error
+
+    // If error is about missing phone_number column, retry without it
+    if (error && error.code === '42703' && error.message?.includes('phone_number')) {
+      const updateDataWithoutPhone = { ...updateData }
+      delete updateDataWithoutPhone.phone_number
+      
+      const retryResult = await supabase
+        .from('users')
+        .update(updateDataWithoutPhone)
+        .eq('id', session.user.id)
+        .select('id, name, email, image, created_at, updated_at')
+        .single()
+      
+      updatedUser = retryResult.data
+      error = retryResult.error
+      
+      // Add phone_number as null since column doesn't exist
+      if (updatedUser) {
+        updatedUser.phone_number = null
+      }
+    }
+
+    if (error) {
+      console.error('Error updating user profile:', error)
+      return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
+    }
+
+    // Also update auth user metadata if name or image changed
+    if (validatedData.name !== undefined || validatedData.image !== undefined) {
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          name: validatedData.name ?? updatedUser.name,
+          avatar_url: validatedData.image ?? updatedUser.image,
+        },
+      })
+
+      if (metadataError) {
+        console.error('Error updating auth metadata:', metadataError)
+        // Don't fail the request, just log the error
+      }
+    }
+
+    return NextResponse.json({
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      phone_number: updatedUser.phone_number,
+      image: updatedUser.image,
+      created_at: updatedUser.created_at,
+      updated_at: updatedUser.updated_at,
+    })
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 })
+    }
+    console.error('Error in PUT /api/profile:', error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+

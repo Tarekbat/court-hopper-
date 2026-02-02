@@ -40,7 +40,7 @@ export default function UpcomingBookings() {
       .filter((booking) => booking.userId === MOCK_USER_ID || (!booking.userId && parseInt(booking.id.replace('b', '')) <= 5))
       .slice(0, 3)
       .map((booking) => {
-        const court = mockCourts.find((c) => c.id === booking.courtId)
+        const court = mockCourts.find((c: Court) => c.id === booking.courtId)
         return { booking, court: court as Court | undefined }
       })
       .filter((item) => item.court)
@@ -62,18 +62,18 @@ export default function UpcomingBookings() {
   }
 
   return (
-    <div className="bg-white rounded-3xl shadow-luxury p-8 md:p-10 border-2 border-miami-turquoise/20 animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+    <div className="bg-white border border-stone-soft rounded-2xl p-6 md:p-8 shadow-sm animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-3xl font-display font-bold text-gray-900 mb-1">Upcoming Bookings</h2>
-          <p className="text-sm text-gray-700 font-medium">Your reserved courts</p>
+          <h2 className="text-2xl font-display text-ink mb-0.5">Upcoming bookings</h2>
+          <p className="text-sm text-stone">Your reserved courts</p>
         </div>
         <Link
           href="/bookings"
-          className="text-miami-turquoise hover:text-miami-ocean text-sm font-bold flex items-center gap-2 transition-all group"
+          className="text-terracotta hover:text-terracotta-dark text-sm font-medium flex items-center gap-2 transition-all group"
         >
-          View All
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          View all
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
       <div className="space-y-4">
@@ -83,35 +83,34 @@ export default function UpcomingBookings() {
             <Link
               key={booking.id}
               href={`/court/${court.id}`}
-              className="block p-6 border-2 border-gray-200 rounded-2xl hover:border-miami-turquoise/50 hover:shadow-md transition-all bg-gray-50 hover:bg-white group card-hover relative overflow-hidden"
+              className="block p-5 border border-stone-soft rounded-xl hover:border-terracotta/40 transition-all bg-white hover:bg-beige group card-hover relative overflow-hidden"
             >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-miami-turquoise to-miami-pink opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="font-display font-bold text-gray-900 mb-3 group-hover:text-miami-turquoise transition-colors text-xl">
+                  <h3 className="font-display text-ink mb-2 group-hover:text-terracotta transition-colors text-lg">
                     {court.name}
                   </h3>
-                  <div className="flex items-center gap-3 text-sm flex-wrap">
-                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                      <Calendar className="w-4 h-4 text-miami-turquoise" />
-                      <span className="font-semibold text-gray-800">{booking.date}</span>
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
+                      <Calendar className="w-4 h-4 text-terracotta" />
+                      <span className="font-medium text-ink">{booking.date}</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                      <Clock className="w-4 h-4 text-miami-turquoise" />
-                      <span className="font-semibold text-gray-800">{booking.timeSlot}</span>
+                    <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
+                      <Clock className="w-4 h-4 text-terracotta" />
+                      <span className="font-medium text-ink">{booking.timeSlot}</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                      <MapPin className="w-4 h-4 text-miami-turquoise" />
-                      <span className="font-semibold text-gray-800">{court.distance} mi</span>
+                    <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
+                      <MapPin className="w-4 h-4 text-terracotta" />
+                      <span className="font-medium text-ink">{court.distance} mi</span>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-bold text-white bg-gradient-to-br from-miami-turquoise to-miami-ocean px-4 py-2 rounded-xl shadow-md">
+                  <div className="text-sm font-semibold text-white bg-terracotta px-3 py-2 rounded-lg">
                     {booking.courtNumber}
                   </div>
                   {booking.isRecurring && (
-                    <div className="text-xs text-miami-pink mt-2 font-bold bg-miami-pink/20 px-3 py-1 rounded-lg border border-miami-pink/30">
+                    <div className="text-xs text-terracotta mt-2 font-medium bg-terracotta/10 px-2.5 py-1 rounded-lg border border-terracotta/25">
                       Recurring
                     </div>
                   )}

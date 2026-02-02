@@ -13,7 +13,9 @@
     "db:push": "supabase db push",
     "db:link": "supabase link",
     "db:login": "supabase login",
-    "db:projects": "supabase projects list"
+    "db:projects": "supabase projects list",
+    "upload:court-image": "ts-node --project tsconfig.seed.json scripts/upload-court-image.ts",
+    "upload:hero-image": "ts-node --project tsconfig.seed.json scripts/upload-hero-image.ts"
   },
   "dependencies": {
     "@stripe/stripe-js": "^2.4.0",
@@ -47,5 +49,8 @@
     "tailwindcss": "^3.3.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "glob": "^10.4.6"
   }
 }

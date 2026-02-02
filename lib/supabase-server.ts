@@ -21,9 +21,12 @@ export function createAdminClient() {
 }
 
 // Server client for API routes (uses anon key with user context)
-export function createServerSupabaseClient() {
-  const cookieStore = cookies()
-
+// Can be used with or without NextRequest
+// For API routes, pass request and response to handle cookie updates
+export function createServerSupabaseClient(
+  request?: NextRequest,
+  response?: NextResponse
+) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!
 
@@ -31,6 +34,33 @@ export function createServerSupabaseClient() {
     throw new Error('Missing Supabase environment variables')
   }
 
+  // If request is provided (API route), use request cookies
+  if (request) {
+    let responseToUse = response || NextResponse.next()
+    
+    return createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // Update response cookies if response is provided
+          if (response) {
+            response.cookies.set({ name, value, ...options })
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          // Update response cookies if response is provided
+          if (response) {
+            response.cookies.set({ name, value: '', ...options })
+          }
+        },
+      },
+    })
+  }
+
+  // Otherwise, use cookies() from next/headers (for Server Components)
+  const cookieStore = cookies()
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {

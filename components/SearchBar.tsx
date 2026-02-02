@@ -1,7 +1,7 @@
 'use client'
 
 import { Search } from '@/components/Icons'
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface SearchBarProps {
   onSearch: (query: string) => void
@@ -9,25 +9,60 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch }: SearchBarProps) {
   const [query, setQuery] = useState('')
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+  const onSearchRef = useRef(onSearch)
+
+  // Keep the ref updated with the latest onSearch function
+  useEffect(() => {
+    onSearchRef.current = onSearch
+  }, [onSearch])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSearch(query)
+    // Clear any pending debounce
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+      debounceTimer.current = null
+    }
+    // Immediately trigger search on Enter
+    onSearchRef.current(query)
   }
+
+  useEffect(() => {
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current)
+    }
+
+    // Don't search if query is empty
+    if (query.trim() === '') {
+      onSearchRef.current('')
+      return
+    }
+
+    // Set new timer to call onSearch after 300ms of no typing
+    debounceTimer.current = setTimeout(() => {
+      onSearchRef.current(query)
+    }, 300)
+
+    // Cleanup on unmount
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current)
+      }
+    }
+  }, [query]) // Remove onSearch from dependencies
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
       <div className="relative">
-        <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-miami-turquoise w-5 h-5 z-10" />
+        <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-terracotta w-5 h-5 z-10 pointer-events-none" />
         <input
           type="text"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            onSearch(e.target.value)
-          }}
-          placeholder="Search premium courts by name or location..."
-          className="w-full pl-14 pr-5 py-4 rounded-2xl border-2 border-miami-turquoise/40 bg-white focus:border-miami-pink focus:outline-none focus:ring-4 focus:ring-miami-pink/20 focus:bg-white text-gray-900 placeholder-gray-400 shadow-xl transition-all text-base font-medium"
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by court name or location..."
+          className="w-full pl-14 pr-5 py-4 bg-white/95 backdrop-blur-sm border border-white/30 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] focus:border-white focus:outline-none focus:ring-2 focus:ring-white/30 text-ink placeholder-stone transition-all text-base"
         />
       </div>
     </form>

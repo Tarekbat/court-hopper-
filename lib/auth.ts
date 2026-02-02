@@ -85,3 +85,40 @@ export async function getUserByEmail(email: string) {
   if (error) return null
   return data
 }
+
+// Check if a user is an admin
+export async function isAdmin(userId: string): Promise<boolean> {
+  try {
+    const adminClient = createAdminClient()
+    
+    // Try to select is_admin, but handle gracefully if column doesn't exist
+    const { data: user, error } = await adminClient
+      .from('users')
+      .select('is_admin')
+      .eq('id', userId)
+      .single()
+
+    // If column doesn't exist (error code 42703), return false
+    if (error) {
+      if (error.code === '42703' && error.message?.includes('is_admin')) {
+        // Column doesn't exist yet, return false
+        return false
+      }
+      // Other errors also return false
+      return false
+    }
+
+    if (!user) return false
+    return user.is_admin === true
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    return false
+  }
+}
+
+// Check if the current user is an admin
+export async function getCurrentUserIsAdmin(): Promise<boolean> {
+  const session = await getServerSession()
+  if (!session?.user?.id) return false
+  return isAdmin(session.user.id)
+}

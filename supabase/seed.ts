@@ -28,7 +28,11 @@ async function main() {
       total_courts: 13,
       description:
         'Premier public tennis facility in Key Biscayne. Home to the Miami Open, featuring 13 hard courts with professional lighting. Beautiful ocean views and well-maintained facilities.',
-      images: ['/court1.jpg'],
+      images: [
+        'https://images.unsplash.com/photo-1622163642999-9584742c66b8?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&h=800&fit=crop&q=80',
+      ],
       amenities: ['Lights', 'Parking', 'Restrooms', 'Water Fountains', 'Pro Shop'],
       available_days: [
         'Monday',
@@ -57,7 +61,10 @@ async function main() {
       total_courts: 19,
       description:
         'Popular public tennis center in the heart of Miami Beach. 19 well-maintained hard courts with excellent lighting for evening play. Great community atmosphere.',
-      images: ['/court2.jpg'],
+      images: [
+        'https://images.unsplash.com/photo-1622279457486-62dcc4a431f7?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=1200&h=800&fit=crop&q=80',
+      ],
       amenities: [
         'Lights',
         'Parking',
@@ -92,7 +99,10 @@ async function main() {
       total_courts: 8,
       description:
         'Scenic public tennis facility along the Hillsborough River. 8 hard courts with beautiful waterfront views. Perfect for recreational play with family and friends.',
-      images: ['/court3.jpg'],
+      images: [
+        'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1622163642999-9584742c66b8?w=1200&h=800&fit=crop&q=80',
+      ],
       amenities: ['Lights', 'Parking', 'Restrooms', 'Water Fountains'],
       available_days: [
         'Monday',
@@ -121,7 +131,11 @@ async function main() {
       total_courts: 12,
       description:
         'Premier public clay court facility in Orlando. 12 professional-grade clay courts with excellent drainage. Perfect for players who prefer the slower pace and softer surface of clay.',
-      images: ['/court4.jpg'],
+      images: [
+        'https://images.unsplash.com/photo-1601925260368-ae2f83d48767?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1601925260368-ae2f83d48767?ixlib=rb-4.0.3&w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1601925260368-ae2f83d48767?auto=format&w=1200&h=800&fit=crop&q=80',
+      ],
       amenities: [
         'Lights',
         'Parking',
@@ -156,7 +170,11 @@ async function main() {
       total_courts: 18,
       description:
         'Historic public tennis facility in Fort Lauderdale. 18 hard courts with excellent lighting. Popular destination for both locals and visitors. Great community atmosphere.',
-      images: ['/court5.jpg'],
+      images: [
+        'https://images.unsplash.com/photo-1534158914592-062992fbe900?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1622279457486-62dcc4a431f7?w=1200&h=800&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&h=800&fit=crop&q=80',
+      ],
       amenities: [
         'Lights',
         'Parking',

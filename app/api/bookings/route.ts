@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-server'
 import { z } from 'zod'
 import { addHours, parse, format } from 'date-fns'
+import { randomUUID } from 'crypto'
 
 const createBookingSchema = z.object({
   courtId: z.string(),
@@ -22,19 +22,53 @@ const createBookingSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
+    const response = NextResponse.next()
+    const supabase = createServerSupabaseClient(request, response)
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError)
+    }
+    
+    if (!session) {
+      console.error('No session found. Cookies:', request.cookies.getAll().map((c: { name: string; value: string }) => c.name))
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createServerSupabaseClient()
+    const user = session.user
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'confirmed'
     const upcoming = searchParams.get('upcoming') === 'true'
 
+    // Optimize: Only select needed fields from bookings and courts
+    // This reduces data transfer and improves query performance
     let query = supabase
       .from('bookings')
-      .select('*, court:courts(*)')
+      .select(`
+        id,
+        court_id,
+        court_number,
+        booking_date,
+        start_time,
+        end_time,
+        duration,
+        price,
+        status,
+        is_recurring,
+        recurring_pattern,
+        payment_status,
+        court:courts!inner(
+          id,
+          name,
+          address,
+          city,
+          state,
+          zip_code
+        )
+      `)
       .eq('user_id', user.id)
 
     if (status !== 'all') {
@@ -43,8 +77,9 @@ export async function GET(request: NextRequest) {
 
     if (upcoming) {
       query = query.gte('booking_date', new Date().toISOString())
+        .order('booking_date', { ascending: true })
     } else {
-      query = query.order('booking_date', { ascending: true })
+      query = query.order('booking_date', { ascending: false })
     }
 
     const { data: bookings, error } = await query
@@ -55,23 +90,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform bookings to match expected format
+    // Only include fields that are actually used by the frontend
     const transformedBookings = (bookings || []).map((booking: any) => ({
-      ...booking,
-      userId: booking.user_id,
+      id: booking.id,
+      userId: user.id,
       courtId: booking.court_id,
       courtNumber: booking.court_number,
-      bookingDate: booking.booking_date,
+      bookingDate: booking.booking_date ? new Date(booking.booking_date).toISOString() : null,
       startTime: booking.start_time,
       endTime: booking.end_time,
+      duration: booking.duration,
+      price: booking.price,
+      status: booking.status,
       isRecurring: booking.is_recurring,
       recurringPattern: booking.recurring_pattern,
-      paymentIntentId: booking.payment_intent_id,
       paymentStatus: booking.payment_status,
-      createdAt: booking.created_at,
-      updatedAt: booking.updated_at,
+      court: booking.court ? {
+        id: booking.court.id,
+        name: booking.court.name,
+        address: booking.court.address,
+        city: booking.court.city,
+        state: booking.court.state,
+        zipCode: booking.court.zip_code,
+      } : null,
     }))
 
-    return NextResponse.json(transformedBookings)
+    // Return response with any cookie updates
+    const jsonResponse = NextResponse.json(transformedBookings)
+    // Copy any cookie updates from the supabase client response
+    response.cookies.getAll().forEach((cookie: { name: string; value: string }) => {
+      jsonResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    return jsonResponse
   } catch (error) {
     console.error('Error fetching bookings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -80,12 +130,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
+    const supabase = createServerSupabaseClient(request)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createServerSupabaseClient()
+    const user = session.user
     const body = await request.json()
     const validatedData = createBookingSchema.parse(body)
 
@@ -109,13 +163,23 @@ export async function POST(request: NextRequest) {
     )
 
     // Check for conflicts - need to check overlapping time slots
-    const startOfDay = new Date(bookingDate)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(bookingDate)
-    endOfDay.setHours(23, 59, 59, 999)
+    // Normalize to UTC to avoid timezone issues
+    const startOfDay = new Date(Date.UTC(
+      bookingDate.getUTCFullYear(),
+      bookingDate.getUTCMonth(),
+      bookingDate.getUTCDate(),
+      0, 0, 0, 0
+    ))
+    const endOfDay = new Date(Date.UTC(
+      bookingDate.getUTCFullYear(),
+      bookingDate.getUTCMonth(),
+      bookingDate.getUTCDate(),
+      23, 59, 59, 999
+    ))
 
-    // Get all bookings for this court, date, and court number
-    const { data: existingBookings } = await supabase
+    // Use admin client to see ALL bookings for conflict checking (not just user's own)
+    const adminSupabase = createAdminClient()
+    const { data: existingBookings } = await adminSupabase
       .from('bookings')
       .select('*')
       .eq('court_id', validatedData.courtId)
@@ -151,14 +215,27 @@ export async function POST(request: NextRequest) {
     const pricePerHour = isPeakTime ? court.peak_price : court.off_peak_price
     const totalPrice = pricePerHour * validatedData.duration
 
+    // Generate unique ID for booking
+    const bookingId = randomUUID()
+
+    // Normalize booking date to midnight UTC to ensure consistent date comparison
+    const bookingDateObj = new Date(validatedData.bookingDate)
+    const normalizedBookingDate = new Date(Date.UTC(
+      bookingDateObj.getUTCFullYear(),
+      bookingDateObj.getUTCMonth(),
+      bookingDateObj.getUTCDate(),
+      0, 0, 0, 0
+    ))
+
     // Create booking
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert({
+        id: bookingId,
         user_id: user.id,
         court_id: validatedData.courtId,
         court_number: validatedData.courtNumber,
-        booking_date: new Date(validatedData.bookingDate).toISOString(),
+        booking_date: normalizedBookingDate.toISOString(),
         start_time: startTime,
         end_time: endTime,
         duration: validatedData.duration,

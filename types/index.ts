@@ -56,6 +56,20 @@ export interface Booking {
     daysOfWeek?: string[] // For weekly recurring
   }
   userId?: string // Optional user ID
+  bookingDate?: string // ISO date string
+  startTime?: string
+  endTime?: string
+  price?: number
+  status?: string
+  paymentStatus?: 'paid' | 'pending' | 'failed'
+  court?: {
+    id: string
+    name: string
+    address: string
+    city: string
+    state: string
+    zipCode: string
+  }
 }
 
 export interface WeeklyAvailability {
