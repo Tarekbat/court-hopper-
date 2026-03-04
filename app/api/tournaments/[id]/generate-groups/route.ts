@@ -81,11 +81,11 @@ export async function POST(
       // Get all confirmed teams for this division
       const { data: regs } = await supabase
         .from('tournament_registrations')
-        .select('team_id')
+        .select('id, team_id')
         .eq('division_id', div.id)
         .eq('status', 'confirmed')
 
-      const teamIds = [...new Set((regs ?? []).map((r: any) => r.team_id).filter(Boolean))]
+      const teamIds = Array.from(new Set((regs ?? []).map((r: any) => r.team_id).filter(Boolean)))
 
       if (teamIds.length < 2) continue
 

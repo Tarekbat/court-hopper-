@@ -74,7 +74,7 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const teamIds = [...new Set((rows ?? []).map((r: any) => r.team_id).filter(Boolean))]
+    const teamIds = Array.from(new Set((rows ?? []).map((r: any) => r.team_id).filter(Boolean)))
     const teamNamesMap = await resolveTeamNamesBatch(supabase, teamIds)
 
     const list = (rows ?? []).map((r: any) => {

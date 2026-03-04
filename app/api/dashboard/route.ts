@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
     const userCity = userRowResult.data?.city ?? null
     const bookings = bookingsResult.data ?? []
     const groupIds = (membersResult.data ?? []).map((m: { group_id: string }) => m.group_id)
-    const allMyIds = [
-      ...new Set([
+    const allMyIds = Array.from(
+      new Set([
         ...groupIds,
         ...((createdByMeResult.data ?? []).map((g: { id: string }) => g.id)),
-      ]),
-    ]
+      ])
+    )
 
     const nextBookings = bookings.map((b: any) => ({
       id: b.id,

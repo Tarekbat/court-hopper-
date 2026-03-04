@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       ])
       const groupIds = (membersResult.data ?? []).map((m: any) => m.group_id)
       const createdByMe = createdByMeResult.data ?? []
-      const allMyIds = [...new Set([...groupIds, ...createdByMe.map((g: any) => g.id)])]
+      const allMyIds = Array.from(new Set([...groupIds, ...createdByMe.map((g: any) => g.id)]))
       if (allMyIds.length === 0) {
         return NextResponse.json([])
       }
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching my groups:', error)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
-      const creatorIds = [...new Set((groups ?? []).map((g: any) => g.created_by).filter(Boolean))]
+      const creatorIds = Array.from(new Set((groups ?? []).map((g: any) => g.created_by).filter(Boolean)))
       let creatorsMap: Record<string, { id: string; name: string | null; image: string | null }> = {}
       if (creatorIds.length > 0) {
         const { data: creatorRows } = await supabase
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const creatorIds = [...new Set((groups ?? []).map((g: any) => g.created_by).filter(Boolean))]
+    const creatorIds = Array.from(new Set((groups ?? []).map((g: any) => g.created_by).filter(Boolean)))
     let creatorsMap: Record<string, { id: string; name: string | null; image: string | null }> = {}
     if (creatorIds.length > 0) {
       const { data: creatorRows } = await supabase

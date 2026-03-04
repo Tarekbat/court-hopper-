@@ -103,13 +103,17 @@ export async function POST(
           const winnerGames = winnerIsTeam1 ? g1 : g2
           const loserGames = winnerIsTeam1 ? g2 : g1
 
-          await supabase.rpc('update_group_standings', {
-            p_group_id: match.group_id,
-            p_team_id: winner_team_id,
-            p_won: true,
-            p_games_for: winnerGames,
-            p_games_against: loserGames,
-          }).catch(() => null) // fallback below if RPC doesn't exist
+          try {
+            await supabase.rpc('update_group_standings', {
+              p_group_id: match.group_id,
+              p_team_id: winner_team_id,
+              p_won: true,
+              p_games_for: winnerGames,
+              p_games_against: loserGames,
+            })
+          } catch {
+            // RPC may not exist; fallback below
+          }
 
           // Manual fallback: fetch and update standings directly
           const { data: winnerRow } = await supabase
