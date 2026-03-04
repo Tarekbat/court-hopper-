@@ -163,11 +163,11 @@ export default function Header() {
             onClick={closeMobile}
           />
           <div
-            className="fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-white shadow-xl md:hidden flex flex-col"
+            className="fixed top-0 right-0 z-50 h-full max-h-[100dvh] w-full max-w-sm bg-white shadow-xl md:hidden flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
             role="dialog"
             aria-label="Navigation menu"
           >
-            <div className="flex items-center justify-between p-4 border-b border-stone-soft">
+            <div className="flex shrink-0 items-center justify-between p-4 border-b border-stone-soft">
               <span className="text-lg font-display font-semibold text-ink">Menu</span>
               <button
                 type="button"
@@ -178,7 +178,7 @@ export default function Header() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+            <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
               {session ? (
                 <>
                   <Link href="/bookings" className={navLinkClass} onClick={closeMobile}>My bookings</Link>

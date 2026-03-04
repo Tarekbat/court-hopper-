@@ -181,7 +181,7 @@ function GroupCard({
     <div className="bg-white rounded-2xl border border-stone-soft shadow-sm overflow-hidden">
       <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-wrap gap-3">
         <h3 className="font-display text-lg text-ink">Group {group.name}</h3>
-        <div className="flex bg-beige rounded-xl p-1 gap-1">
+        <div className="flex bg-beige rounded-xl p-1 gap-1 touch-manipulation">
           {(['matches', 'standings'] as const).map((t) => (
             <button
               key={t}
@@ -1066,12 +1066,12 @@ export default function TournamentDetailPage() {
 
           {/* Tabs */}
           {tabs.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-4 touch-manipulation">
               {tabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setActiveTab(t.id)}
+                  onClick={() => { setActiveTab(t.id); window.scrollTo(0, 0) }}
                   className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     activeTab === t.id
                       ? 'bg-ink text-white'

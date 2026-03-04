@@ -136,10 +136,10 @@ export default function GroupsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mb-6">
-            <div className="bg-white rounded-xl p-1 border border-stone-soft shadow-sm flex">
+            <div className="bg-white rounded-xl p-1 border border-stone-soft shadow-sm flex touch-manipulation">
               <button
                 type="button"
-                onClick={() => setTab('my')}
+                onClick={() => { setTab('my'); window.scrollTo(0, 0) }}
                 className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   tab === 'my' ? 'bg-ink text-white' : 'text-stone hover:bg-beige'
                 }`}
@@ -148,7 +148,7 @@ export default function GroupsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setTab('discover')}
+                onClick={() => { setTab('discover'); window.scrollTo(0, 0) }}
                 className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   tab === 'discover' ? 'bg-ink text-white' : 'text-stone hover:bg-beige'
                 }`}
