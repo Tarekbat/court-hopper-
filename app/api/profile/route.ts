@@ -6,6 +6,7 @@ const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   phone_number: z.string().optional().nullable(),
   image: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       
       const result = await supabase
         .from('users')
-        .select(`${selectFields}, phone_number, is_admin`)
+        .select(`${selectFields}, phone_number, is_admin, city`)
         .eq('id', session.user.id)
         .single()
 
@@ -38,7 +39,30 @@ export async function GET(request: NextRequest) {
 
       // If error is about missing columns, try without them
       if (error && error.code === '42703') {
-        // Try with just phone_number (if is_admin doesn't exist)
+        if (error.message?.includes('city')) {
+          const resultWithoutCity = await supabase
+            .from('users')
+            .select(`${selectFields}, phone_number, is_admin`)
+            .eq('id', session.user.id)
+            .single()
+          if (resultWithoutCity.error) {
+            console.error('Error fetching user profile:', resultWithoutCity.error)
+            return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+          }
+          const u = resultWithoutCity.data as any
+          if (!u) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+          return NextResponse.json({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            phone_number: u.phone_number ?? null,
+            image: u.image,
+            is_admin: u.is_admin === true,
+            city: null,
+            created_at: u.created_at,
+            updated_at: u.updated_at,
+          })
+        }
         if (error.message?.includes('is_admin')) {
           const resultWithoutAdmin = await supabase
             .from('users')
@@ -173,6 +197,7 @@ export async function GET(request: NextRequest) {
         phone_number?: string | null
         image: string | null
         is_admin?: boolean | null
+        city?: string | null
         created_at: string
         updated_at: string
       }
@@ -186,6 +211,7 @@ export async function GET(request: NextRequest) {
         phone_number: userData.phone_number ?? null,
         image: userData.image,
         is_admin: userData.is_admin === true,
+        city: userData.city ?? null,
         created_at: userData.created_at,
         updated_at: userData.updated_at,
       })
@@ -230,6 +256,9 @@ export async function PUT(request: NextRequest) {
     if (validatedData.image !== undefined) {
       updateData.image = validatedData.image || null
     }
+    if (validatedData.city !== undefined) {
+      updateData.city = validatedData.city || null
+    }
 
     // Try to update with phone_number first
     let updatedUser: any
@@ -239,7 +268,7 @@ export async function PUT(request: NextRequest) {
       .from('users')
       .update(updateData)
       .eq('id', session.user.id)
-      .select('id, name, email, phone_number, image, created_at, updated_at')
+      .select('id, name, email, phone_number, image, city, created_at, updated_at')
       .single()
 
     updatedUser = updateResult.data
@@ -254,7 +283,7 @@ export async function PUT(request: NextRequest) {
         .from('users')
         .update(updateDataWithoutPhone)
         .eq('id', session.user.id)
-        .select('id, name, email, image, created_at, updated_at')
+        .select('id, name, email, image, city, created_at, updated_at')
         .single()
       
       updatedUser = retryResult.data
@@ -264,6 +293,21 @@ export async function PUT(request: NextRequest) {
       if (updatedUser) {
         updatedUser.phone_number = null
       }
+    }
+
+    // If error is about missing city column, retry without it
+    if (error && error.code === '42703' && error.message?.includes('city')) {
+      const updateDataWithoutCity = { ...updateData }
+      delete updateDataWithoutCity.city
+      const retryResult = await supabase
+        .from('users')
+        .update(updateDataWithoutCity)
+        .eq('id', session.user.id)
+        .select('id, name, email, phone_number, image, created_at, updated_at')
+        .single()
+      updatedUser = retryResult.data
+      error = retryResult.error
+      if (updatedUser) (updatedUser as any).city = null
     }
 
     if (error) {
@@ -292,6 +336,7 @@ export async function PUT(request: NextRequest) {
       email: updatedUser.email,
       phone_number: updatedUser.phone_number,
       image: updatedUser.image,
+      city: updatedUser.city ?? null,
       created_at: updatedUser.created_at,
       updated_at: updatedUser.updated_at,
     })

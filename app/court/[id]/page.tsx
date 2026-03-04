@@ -328,64 +328,57 @@ export default function CourtDetailPage() {
       setCourt(transformedCourt)
       setLoading(false)
 
-      // Fetch availability for next 7 days
+      // Fetch availability for next 14 days in one batch request
       const today = startOfToday()
-      const availabilityPromises = Array.from({ length: 14 }, (_, i) => {
-        const date = addDays(today, i)
-        const dateStr = getDateString(date)
-        
-        return (async () => {
-          try {
-            const availabilityResponse = await fetch(
-              `/api/courts/${params.id}?date=${dateStr}`
-            )
-            
-            if (availabilityResponse.ok) {
-              const availabilityData = await availabilityResponse.json()
-              
-              // Convert API time slots (24h format) to display format (12h format)
-              const timeSlots = (availabilityData.availability || []).map((slot: any) => {
-                // Convert 24h time to 12h for display
+      const dateStrings = Array.from({ length: 14 }, (_, i) =>
+        getDateString(addDays(today, i))
+      )
+      const datesQuery = dateStrings.join(',')
+
+      try {
+        const availabilityResponse = await fetch(
+          `/api/courts/${params.id}/availability?dates=${encodeURIComponent(datesQuery)}`
+        )
+        if (availabilityResponse.ok) {
+          const batch: Record<string, { time: string; availableCourts: { number: string; isAvailable: boolean }[] }[]> =
+            await availabilityResponse.json()
+          const availabilityMap: { [key: string]: any[] } = {}
+          for (const dateStr of dateStrings) {
+            const slots = batch[dateStr]
+            if (slots?.length) {
+              availabilityMap[dateStr] = slots.map((slot: any) => {
                 const [hours, minutes] = slot.time.split(':')
-                const hour24 = parseInt(hours)
+                const hour24 = parseInt(hours, 10)
                 let hour12 = hour24
                 const period = hour24 >= 12 ? 'PM' : 'AM'
-                
-                if (hour24 === 0) {
-                  hour12 = 12
-                } else if (hour24 > 12) {
-                  hour12 = hour24 - 12
-                }
-                
+                if (hour24 === 0) hour12 = 12
+                else if (hour24 > 12) hour12 = hour24 - 12
                 const time12h = `${hour12}:${minutes || '00'} ${period}`
-                
                 return {
                   time: time12h,
                   availableCourts: slot.availableCourts || [],
                 }
               })
-              
-              return { dateStr, timeSlots: timeSlots.length > 0 ? timeSlots : generateDefaultTimeSlots(transformedCourt.totalCourts) }
+            } else {
+              availabilityMap[dateStr] = generateDefaultTimeSlots(transformedCourt.totalCourts)
             }
-          } catch (error) {
-            console.error(`Error fetching availability for ${dateStr}:`, error)
           }
-          return { dateStr, timeSlots: generateDefaultTimeSlots(transformedCourt.totalCourts) }
-        })()
-      })
-
-      // Wait for all availability fetches in parallel
-      const availabilityResults = await Promise.all(availabilityPromises)
-      
-      // Update availability by date
-      const availabilityMap: { [key: string]: any[] } = {}
-      availabilityResults.forEach(({ dateStr, timeSlots }) => {
-        if (timeSlots) {
-          availabilityMap[dateStr] = timeSlots
+          setAvailabilityByDate(availabilityMap)
+        } else {
+          const fallback: { [key: string]: any[] } = {}
+          dateStrings.forEach((d) => {
+            fallback[d] = generateDefaultTimeSlots(transformedCourt.totalCourts)
+          })
+          setAvailabilityByDate(fallback)
         }
-      })
-
-      setAvailabilityByDate(availabilityMap)
+      } catch (err) {
+        console.error('Error fetching batch availability:', err)
+        const fallback: { [key: string]: any[] } = {}
+        dateStrings.forEach((d) => {
+          fallback[d] = generateDefaultTimeSlots(transformedCourt.totalCourts)
+        })
+        setAvailabilityByDate(fallback)
+      }
 
     } catch (err) {
       console.error('Error fetching court:', err)
@@ -409,46 +402,47 @@ export default function CourtDetailPage() {
 
   const fetchAvailabilityForDate = async (date: Date) => {
     const dateStr = getDateString(date)
-    
-    // If we already have availability for this date, don't fetch again
     if (availabilityByDate[dateStr]) return
-    
+
     try {
-      const availabilityResponse = await fetch(
-        `/api/courts/${params.id}?date=${dateStr}`
+      const res = await fetch(
+        `/api/courts/${params.id}/availability?dates=${encodeURIComponent(dateStr)}`
       )
-      
-      if (availabilityResponse.ok) {
-        const availabilityData = await availabilityResponse.json()
-        
-        // Convert API time slots (24h format) to display format (12h format)
-        const timeSlots = (availabilityData.availability || []).map((slot: any) => {
-          const [hours, minutes] = slot.time.split(':')
-          const hour24 = parseInt(hours)
-          let hour12 = hour24
-          const period = hour24 >= 12 ? 'PM' : 'AM'
-          
-          if (hour24 === 0) {
-            hour12 = 12
-          } else if (hour24 > 12) {
-            hour12 = hour24 - 12
+      if (!res.ok) return
+      const batch = await res.json()
+      const slots = batch[dateStr]
+      const totalCourts = court?.totalCourts ?? 1
+      const timeSlots = (slots ?? []).map((slot: any) => {
+        const [hours, minutes] = slot.time.split(':')
+        const hour24 = parseInt(hours, 10)
+        let hour12 = hour24
+        const period = hour24 >= 12 ? 'PM' : 'AM'
+        if (hour24 === 0) hour12 = 12
+        else if (hour24 > 12) hour12 = hour24 - 12
+        const time12h = `${hour12}:${minutes || '00'} ${period}`
+        return { time: time12h, availableCourts: slot.availableCourts || [] }
+      })
+      setAvailabilityByDate((prev) => ({
+        ...prev,
+        [dateStr]: timeSlots.length > 0 ? timeSlots : (() => {
+          const defaultSlots = []
+          for (let hour = 7; hour <= 21; hour++) {
+            let h12 = hour
+            const period = hour >= 12 ? 'PM' : 'AM'
+            if (hour > 12) h12 = hour - 12
+            defaultSlots.push({
+              time: `${h12}:00 ${period}`,
+              availableCourts: Array.from({ length: totalCourts }, (_, i) => ({
+                number: `Court ${i + 1}`,
+                isAvailable: true,
+              })),
+            })
           }
-          
-          const time12h = `${hour12}:${minutes || '00'} ${period}`
-          
-          return {
-            time: time12h,
-            availableCourts: slot.availableCourts || [],
-          }
-        })
-        
-        setAvailabilityByDate(prev => ({
-          ...prev,
-          [dateStr]: timeSlots.length > 0 ? timeSlots : []
-        }))
-      }
-    } catch (error) {
-      console.error(`Error fetching availability for ${dateStr}:`, error)
+          return defaultSlots
+        })(),
+      }))
+    } catch (err) {
+      console.error('Error fetching availability for', dateStr, err)
     }
   }
 

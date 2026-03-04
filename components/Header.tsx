@@ -62,6 +62,24 @@ export default function Header() {
                 >
                   My bookings
                 </Link>
+                <Link
+                  href="/groups"
+                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
+                >
+                  Groups
+                </Link>
+                <Link
+                  href="/find-players"
+                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
+                >
+                  Find players
+                </Link>
+                <Link
+                  href="/tournaments"
+                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
+                >
+                  Tournaments
+                </Link>
                 <div className="flex items-center gap-3 pl-3 border-l border-stone-soft">
                   <Link
                     href="/profile"

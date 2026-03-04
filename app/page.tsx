@@ -9,6 +9,7 @@ import SearchBar from '@/components/SearchBar'
 import WeeklyAvailability from '@/components/WeeklyAvailability'
 import QuickActions from '@/components/QuickActions'
 import UpcomingBookings from '@/components/UpcomingBookings'
+import LoggedInDashboard from '@/components/LoggedInDashboard'
 import FeaturedCourts from '@/components/FeaturedCourts'
 import Header from '@/components/Header'
 import { Map, List } from '@/components/Icons'
@@ -324,9 +325,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 relative z-0 bg-beige">
-        {/* Upcoming Bookings Section */}
+        {/* Dashboard for logged-in users */}
         <div className="mb-16">
-          <UpcomingBookings />
+          <LoggedInDashboard />
         </div>
 
         {/* Filters Toggle */}

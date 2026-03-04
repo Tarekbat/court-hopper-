@@ -7,6 +7,9 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { MapPin, Calendar, Clock, ArrowLeft, X } from '@/components/Icons'
 import Link from 'next/link'
+import LoadingSkeleton from '@/components/ui/LoadingSkeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
 import { format, isPast, parseISO } from 'date-fns'
 
 interface Booking {
@@ -41,7 +44,7 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<FilterType>('all')
+  const [filter, setFilter] = useState<FilterType>('upcoming')
 
   useEffect(() => {
     // Fetch all bookings immediately without waiting for auth check
@@ -206,51 +209,31 @@ export default function BookingsPage() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
           {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6 animate-pulse">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="h-6 bg-stone-soft/80 rounded w-1/3 mb-3"></div>
-                      <div className="h-4 bg-stone-soft/80 rounded w-1/2 mb-4"></div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-stone-soft/50 rounded-xl border border-stone-soft/80">
-                        <div>
-                          <div className="h-3 bg-stone-soft/80 rounded w-16 mb-2"></div>
-                          <div className="h-5 bg-stone-soft/80 rounded w-24"></div>
-                        </div>
-                        <div>
-                          <div className="h-3 bg-stone-soft/80 rounded w-16 mb-2"></div>
-                          <div className="h-5 bg-stone-soft/80 rounded w-32"></div>
-                        </div>
-                        <div>
-                          <div className="h-3 bg-stone-soft/80 rounded w-16 mb-2"></div>
-                          <div className="h-5 bg-stone-soft/80 rounded w-24"></div>
-                        </div>
-                      </div>
-                      <div className="h-10 bg-stone-soft/80 rounded-xl w-32"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <LoadingSkeleton count={3} variant="card" />
           ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
-              <p className="text-red-800 font-medium">{error}</p>
-            </div>
+            <ErrorState
+              message={error}
+              onRetry={fetchBookings}
+              backLink={
+                <Link href="/" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:bg-beige text-sm font-medium">
+                  Back to home
+                </Link>
+              }
+            />
           ) : allBookings.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-stone-soft shadow-sm p-12 text-center">
-              <div className="mb-5">
-                <Calendar className="w-14 h-14 text-stone mx-auto" />
-              </div>
-              <h2 className="text-xl font-display text-ink mb-2">No bookings yet</h2>
-              <p className="text-stone mb-6">You haven&apos;t made any court reservations yet.</p>
-              <Link
-                href="/"
-                className="btn-premium inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm"
-              >
-                Browse courts
-              </Link>
-            </div>
+            <EmptyState
+              icon={<Calendar className="w-14 h-14 text-stone mx-auto" />}
+              title="No bookings yet"
+              description="You haven't made any court reservations yet."
+              action={
+                <Link
+                  href="/"
+                  className="btn-premium inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm"
+                >
+                  Browse courts
+                </Link>
+              }
+            />
           ) : (
             <>
               <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
@@ -316,11 +299,12 @@ export default function BookingsPage() {
                         Upcoming ({upcomingBookings.length})
                       </h3>
                       <div className="space-y-4">
-                        {upcomingBookings.map((booking) => (
+                        {upcomingBookings.map((booking, index) => (
                           <BookingCard
                             key={booking.id}
                             booking={booking}
                             isPast={false}
+                            isNext={index === 0}
                             isRecurring={isRecurring(booking)}
                             onCancel={handleCancelBooking}
                             cancellingId={cancellingId}
@@ -342,6 +326,7 @@ export default function BookingsPage() {
                             key={booking.id}
                             booking={booking}
                             isPast={true}
+                            isNext={false}
                             isRecurring={isRecurring(booking)}
                             onCancel={handleCancelBooking}
                             cancellingId={cancellingId}
@@ -364,22 +349,29 @@ export default function BookingsPage() {
 function BookingCard({
   booking,
   isPast,
+  isNext,
   isRecurring,
   onCancel,
   cancellingId,
 }: {
   booking: Booking
   isPast: boolean
+  isNext?: boolean
   isRecurring: boolean
   onCancel: (id: string) => void
   cancellingId: string | null
 }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-stone-soft shadow-sm p-6 transition-shadow hover:shadow-md ${
-        isPast ? 'opacity-90' : ''
-      }`}
+      className={`bg-white rounded-2xl border shadow-sm p-6 transition-shadow hover:shadow-md ${
+        isNext ? 'border-terracotta/40 ring-1 ring-terracotta/20' : 'border-stone-soft'
+      } ${isPast ? 'opacity-90' : ''}`}
     >
+      {isNext && (
+        <div className="mb-3 px-3 py-1.5 bg-terracotta/10 text-terracotta rounded-lg text-xs font-semibold uppercase tracking-wide inline-block border border-terracotta/25">
+          Next booking
+        </div>
+      )}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -419,6 +411,17 @@ function BookingCard({
               {booking.court.zipCode}
             </span>
           </div>
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              [booking.court.address, booking.court.city, booking.court.state, booking.court.zipCode].filter(Boolean).join(', ')
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-terracotta hover:text-terracotta-dark font-medium mb-4"
+          >
+            Get directions
+            <span aria-hidden>↗</span>
+          </a>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-stone-soft/50 rounded-xl border border-stone-soft/80">
             <div>

@@ -1,64 +1,61 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import { Session } from '@supabase/supabase-js'
-import { mockBookings } from '@/data/mockBookings'
-import { mockCourts } from '@/data/mockCourts'
-import { Booking, Court } from '@/types'
 import Link from 'next/link'
 import { Calendar, Clock, MapPin, ArrowRight } from '@/components/Icons'
-import { createBrowserClient } from '@/lib/supabase-client'
+import { format, parseISO } from 'date-fns'
 
-const MOCK_USER_ID = 'user123'
+export interface UpcomingBookingItem {
+  id: string
+  courtNumber: string
+  bookingDate: string | null
+  startTime: string
+  isRecurring: boolean
+  court: {
+    id: string
+    name: string
+    address: string
+    city: string
+    state: string
+    zipCode: string
+  } | null
+}
 
-export default function UpcomingBookings() {
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+interface UpcomingBookingsProps {
+  nextBookings: UpcomingBookingItem[]
+}
 
-  useEffect(() => {
-    const supabase = createBrowserClient()
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const upcomingBookings = useMemo(() => {
-    const userBookings = mockBookings
-      .filter((booking) => booking.userId === MOCK_USER_ID || (!booking.userId && parseInt(booking.id.replace('b', '')) <= 5))
-      .slice(0, 3)
-      .map((booking) => {
-        const court = mockCourts.find((c: Court) => c.id === booking.courtId)
-        return { booking, court: court as Court | undefined }
-      })
-      .filter((item) => item.court)
-
-    return userBookings
-  }, [])
-
-  // Don't show if user is not authenticated
-  if (loading) {
-    return null
-  }
-
-  if (!session) {
-    return null
-  }
-
-  if (upcomingBookings.length === 0) {
-    return null
+export default function UpcomingBookings({ nextBookings }: UpcomingBookingsProps) {
+  if (nextBookings.length === 0) {
+    return (
+      <div className="bg-white border border-stone-soft rounded-2xl p-6 md:p-8 shadow-sm animate-fade-in">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-display text-ink mb-0.5">Upcoming bookings</h2>
+            <p className="text-sm text-stone">Your reserved courts</p>
+          </div>
+          <Link
+            href="/bookings"
+            className="text-terracotta hover:text-terracotta-dark text-sm font-medium flex items-center gap-2 transition-all group"
+          >
+            View all
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+        <div className="text-center py-8">
+          <p className="text-stone mb-4">No upcoming bookings</p>
+          <Link
+            href="/"
+            onClick={(e) => {
+              e.preventDefault()
+              document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+            className="text-terracotta hover:text-terracotta-dark font-medium text-sm"
+          >
+            Find a court
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -77,8 +74,12 @@ export default function UpcomingBookings() {
         </Link>
       </div>
       <div className="space-y-4">
-        {upcomingBookings.map(({ booking, court }) => {
+        {nextBookings.map((booking) => {
+          const court = booking.court
           if (!court) return null
+          const dateStr = booking.bookingDate
+            ? format(parseISO(booking.bookingDate), 'MMM d, yyyy')
+            : ''
           return (
             <Link
               key={booking.id}
@@ -93,15 +94,15 @@ export default function UpcomingBookings() {
                   <div className="flex items-center gap-2 text-sm flex-wrap">
                     <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
                       <Calendar className="w-4 h-4 text-terracotta" />
-                      <span className="font-medium text-ink">{booking.date}</span>
+                      <span className="font-medium text-ink">{dateStr}</span>
                     </div>
                     <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
                       <Clock className="w-4 h-4 text-terracotta" />
-                      <span className="font-medium text-ink">{booking.timeSlot}</span>
+                      <span className="font-medium text-ink">{booking.startTime}</span>
                     </div>
                     <div className="flex items-center gap-2 bg-stone-soft/50 px-3 py-1.5 rounded-lg border border-stone-soft/80">
                       <MapPin className="w-4 h-4 text-terracotta" />
-                      <span className="font-medium text-ink">{court.distance} mi</span>
+                      <span className="font-medium text-ink">{court.city}</span>
                     </div>
                   </div>
                 </div>
@@ -123,6 +124,3 @@ export default function UpcomingBookings() {
     </div>
   )
 }
-
-
-

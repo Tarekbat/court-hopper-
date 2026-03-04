@@ -5,6 +5,12 @@ import Providers from '@/components/Providers'
 export const metadata: Metadata = {
   title: 'Tennis Court Scheduler',
   description: 'Find and book tennis courts near you',
+  icons: {
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-touch-icon-precomposed.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({

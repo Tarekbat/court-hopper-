@@ -13,6 +13,7 @@ interface UserProfile {
   email: string
   phone_number: string | null
   image: string | null
+  city?: string | null
   is_admin?: boolean
   created_at: string
   updated_at: string
@@ -32,6 +33,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     name: '',
     phone_number: '',
+    city: '',
     image: '',
   })
 
@@ -58,6 +60,7 @@ export default function ProfilePage() {
       setFormData({
         name: data.name || '',
         phone_number: data.phone_number || '',
+        city: data.city || '',
         image: data.image || '',
       })
     } catch (err) {
@@ -81,6 +84,9 @@ export default function ProfilePage() {
       }
       if (formData.phone_number !== profile?.phone_number) {
         updateData.phone_number = formData.phone_number || null
+      }
+      if (formData.city !== profile?.city) {
+        updateData.city = formData.city || null
       }
       if (formData.image !== profile?.image) {
         updateData.image = formData.image || null
@@ -400,6 +406,26 @@ export default function ProfilePage() {
                   className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
                   placeholder="(555) 123-4567"
                 />
+              </div>
+
+              {/* City (optional - for "near you" discovery) */}
+              <div>
+                <label
+                  htmlFor="city"
+                  className="block text-sm font-medium text-ink mb-2"
+                >
+                  City (optional)
+                </label>
+                <input
+                  type="text"
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                  placeholder="e.g. Orlando"
+                />
+                <p className="mt-1 text-xs text-stone">Used to show players and groups near you.</p>
               </div>
 
               {/* Account Info */}
