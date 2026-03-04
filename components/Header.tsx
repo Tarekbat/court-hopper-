@@ -5,22 +5,25 @@ import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase-client'
+import { List, X } from '@/components/Icons'
+
+const navLinkClass = 'block w-full px-4 py-3 text-left text-ink font-medium rounded-xl hover:bg-beige hover:border-stone border border-transparent transition-all'
+const navLinkClassPrimary = 'block w-full px-4 py-3 text-left text-white font-semibold rounded-xl bg-terracotta hover:bg-terracotta-dark border border-transparent transition-all'
 
 export default function Header() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     const supabase = createBrowserClient()
 
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
     })
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -30,6 +33,28 @@ export default function Header() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (mobileOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const closeMobile = () => setMobileOpen(false)
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+    closeMobile()
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-stone-soft/80 shadow-[0_1px_0_0_rgba(255,255,255,0.8)_inset]">
@@ -49,42 +74,28 @@ export default function Header() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-3">
             {loading ? (
               <div className="px-4 py-2">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-terracotta border-t-transparent"></div>
               </div>
             ) : session ? (
               <>
-                <Link
-                  href="/bookings"
-                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
-                >
+                <Link href="/bookings" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
                   My bookings
                 </Link>
-                <Link
-                  href="/groups"
-                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
-                >
+                <Link href="/groups" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
                   Groups
                 </Link>
-                <Link
-                  href="/find-players"
-                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
-                >
+                <Link href="/find-players" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
                   Find players
                 </Link>
-                <Link
-                  href="/tournaments"
-                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
-                >
+                <Link href="/tournaments" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
                   Tournaments
                 </Link>
                 <div className="flex items-center gap-3 pl-3 border-l border-stone-soft">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group"
-                  >
+                  <Link href="/profile" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group">
                     {session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? (
                       <img
                         src={session.user.user_metadata?.avatar_url || session.user.user_metadata?.image}
@@ -99,17 +110,12 @@ export default function Header() {
                     <div className={`w-9 h-9 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold ${session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? 'hidden' : ''}`}>
                       {(session.user.user_metadata?.name || session.user.email || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-ink hidden sm:block group-hover:text-terracotta transition-colors">
+                    <span className="text-sm font-medium text-ink group-hover:text-terracotta transition-colors">
                       {session.user.user_metadata?.name || session.user.email}
                     </span>
                   </Link>
                   <button
-                    onClick={async () => {
-                      const supabase = createBrowserClient()
-                      await supabase.auth.signOut()
-                      router.push('/')
-                      router.refresh()
-                    }}
+                    onClick={handleSignOut}
                     className="px-4 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
                   >
                     Sign out
@@ -118,23 +124,97 @@ export default function Header() {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
-                  href="/auth/signin"
-                  className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
-                >
+                <Link href="/auth/signin" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
                   Sign in
                 </Link>
-                <Link
-                  href="/auth/signup"
-                  className="px-5 py-2.5 bg-terracotta text-white rounded-xl hover:bg-terracotta-dark transition-all text-sm font-semibold btn-premium"
-                >
+                <Link href="/auth/signup" className="px-5 py-2.5 bg-terracotta text-white rounded-xl hover:bg-terracotta-dark transition-all text-sm font-semibold btn-premium">
                   Sign up
                 </Link>
               </div>
             )}
           </div>
+
+          {/* Mobile: hamburger */}
+          <div className="flex md:hidden items-center gap-2">
+            {loading ? (
+              <div className="p-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-terracotta border-t-transparent"></div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                className="p-2.5 rounded-xl text-ink hover:bg-beige border border-stone-soft transition-all"
+                aria-label="Open menu"
+              >
+                <List className="w-6 h-6" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Mobile slide-out menu */}
+      {mobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            aria-hidden
+            onClick={closeMobile}
+          />
+          <div
+            className="fixed top-0 right-0 z-50 h-full w-full max-w-sm bg-white shadow-xl md:hidden flex flex-col"
+            role="dialog"
+            aria-label="Navigation menu"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-stone-soft">
+              <span className="text-lg font-display font-semibold text-ink">Menu</span>
+              <button
+                type="button"
+                onClick={closeMobile}
+                className="p-2 rounded-lg text-ink hover:bg-beige transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+              {session ? (
+                <>
+                  <Link href="/bookings" className={navLinkClass} onClick={closeMobile}>My bookings</Link>
+                  <Link href="/groups" className={navLinkClass} onClick={closeMobile}>Groups</Link>
+                  <Link href="/find-players" className={navLinkClass} onClick={closeMobile}>Find players</Link>
+                  <Link href="/tournaments" className={navLinkClass} onClick={closeMobile}>Tournaments</Link>
+                  <Link href="/profile" className={navLinkClass} onClick={closeMobile}>
+                    <span className="flex items-center gap-3">
+                      {session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? (
+                        <img
+                          src={session.user.user_metadata?.avatar_url || session.user.user_metadata?.image}
+                          alt=""
+                          className="w-9 h-9 rounded-full object-cover border border-stone-soft"
+                        />
+                      ) : (
+                        <span className="w-9 h-9 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold">
+                          {(session.user.user_metadata?.name || session.user.email || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      {session.user.user_metadata?.name || session.user.email || 'Profile'}
+                    </span>
+                  </Link>
+                  <button type="button" onClick={handleSignOut} className={navLinkClass + ' w-full text-left'}>
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signin" className={navLinkClass} onClick={closeMobile}>Sign in</Link>
+                  <Link href="/auth/signup" className={navLinkClassPrimary} onClick={closeMobile}>Sign up</Link>
+                </>
+              )}
+            </nav>
+          </div>
+        </>
+      )}
     </header>
   )
 }
