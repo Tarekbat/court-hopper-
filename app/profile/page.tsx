@@ -37,6 +37,12 @@ export default function ProfilePage() {
     image: '',
   })
 
+  const [passwordNew, setPasswordNew] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+
   useEffect(() => {
     fetchProfile()
   }, [])
@@ -127,6 +133,34 @@ export default function ProfilePage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError(null)
+    setPasswordSuccess(false)
+    if (passwordNew.length < 6) {
+      setPasswordError('Password must be at least 6 characters.')
+      return
+    }
+    if (passwordNew !== passwordConfirm) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+    setPasswordSaving(true)
+    try {
+      const supabase = createBrowserClient()
+      const { error: updateError } = await supabase.auth.updateUser({ password: passwordNew })
+      if (updateError) throw updateError
+      setPasswordSuccess(true)
+      setPasswordNew('')
+      setPasswordConfirm('')
+      setTimeout(() => setPasswordSuccess(false), 5000)
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to update password. Try again.')
+    } finally {
+      setPasswordSaving(false)
+    }
   }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -476,6 +510,61 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+
+            {/* Change password */}
+            <div className="mt-10 pt-10 border-t border-stone-soft">
+              <h3 className="text-lg font-display text-ink mb-1">Security</h3>
+              <p className="text-stone text-sm mb-4">Update your password. Use at least 6 characters.</p>
+              {passwordError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm font-medium">
+                  {passwordError}
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm font-medium">
+                  Password updated successfully.
+                </div>
+              )}
+              <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-sm">
+                <div>
+                  <label htmlFor="password-new" className="block text-sm font-medium text-ink mb-2">
+                    New password
+                  </label>
+                  <input
+                    type="password"
+                    id="password-new"
+                    value={passwordNew}
+                    onChange={(e) => setPasswordNew(e.target.value)}
+                    minLength={6}
+                    className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                    placeholder="At least 6 characters"
+                    disabled={passwordSaving}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="password-confirm" className="block text-sm font-medium text-ink mb-2">
+                    Confirm new password
+                  </label>
+                  <input
+                    type="password"
+                    id="password-confirm"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    minLength={6}
+                    className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                    placeholder="Re-enter new password"
+                    disabled={passwordSaving}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={passwordSaving || !passwordNew || !passwordConfirm}
+                  className="px-5 py-2.5 bg-ink text-white rounded-xl font-medium text-sm hover:bg-ink/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {passwordSaving ? 'Updating…' : 'Update password'}
+                </button>
+              </form>
+            </div>
 
             {/* Hero Image Management Section (Admin Only) */}
             {isAdmin && (

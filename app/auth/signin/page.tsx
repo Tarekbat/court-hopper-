@@ -19,6 +19,9 @@ function SignInForm() {
     if (searchParams.get('registered') === 'true') {
       setSuccess('Account created successfully! Please sign in.')
     }
+    if (searchParams.get('reset') === 'success') {
+      setSuccess('Password updated. You can sign in with your new password.')
+    }
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,9 +101,17 @@ function SignInForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-bold text-clay-rust-dark mb-3">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-3">
+                <label htmlFor="password" className="block text-sm font-bold text-clay-rust-dark">
+                  Password
+                </label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-sm font-medium text-clay-terracotta hover:text-clay-rust transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"

@@ -1,20 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase-client'
 import { List, X } from '@/components/Icons'
 
-const navLinkClass = 'block w-full px-4 py-3 text-left text-ink font-medium rounded-xl hover:bg-beige hover:border-stone border border-transparent transition-all'
-const navLinkClassPrimary = 'block w-full px-4 py-3 text-left text-white font-semibold rounded-xl bg-terracotta hover:bg-terracotta-dark border border-transparent transition-all'
+const navLinkClass = 'block w-full min-w-0 px-4 py-3 text-left text-ink font-medium rounded-xl hover:bg-beige hover:border-stone border border-transparent transition-all overflow-hidden text-ellipsis'
+const navLinkClassPrimary = 'block w-full min-w-0 px-4 py-3 text-left text-white font-semibold rounded-xl bg-terracotta hover:bg-terracotta-dark border border-transparent transition-all overflow-hidden text-ellipsis'
 
 export default function Header() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -154,21 +158,22 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile slide-out menu */}
-      {mobileOpen && (
+      {/* Mobile slide-out menu: portaled to body so it's never clipped by header or hero */}
+      {mounted && mobileOpen && createPortal(
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            className="fixed inset-0 z-[100] bg-black/50 md:hidden"
             aria-hidden
             onClick={closeMobile}
           />
           <div
-            className="fixed top-0 right-0 z-50 h-full max-h-[100dvh] w-full max-w-sm bg-white shadow-xl md:hidden flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+            className="fixed top-0 right-0 z-[101] h-full max-h-[100dvh] w-full max-w-sm max-w-[100vw] min-w-0 overflow-x-hidden bg-white shadow-xl md:hidden flex flex-col pb-[env(safe-area-inset-bottom)]"
+            style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))' }}
             role="dialog"
             aria-label="Navigation menu"
           >
-            <div className="flex shrink-0 items-center justify-between p-4 border-b border-stone-soft">
-              <span className="text-lg font-display font-semibold text-ink">Menu</span>
+            <div className="flex shrink-0 items-center justify-between gap-2 p-4 border-b border-stone-soft min-w-0">
+              <span className="text-lg font-display font-semibold text-ink truncate">Menu</span>
               <button
                 type="button"
                 onClick={closeMobile}
@@ -178,7 +183,7 @@ export default function Header() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+            <nav className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-2">
               {session ? (
                 <>
                   <Link href="/bookings" className={navLinkClass} onClick={closeMobile}>My bookings</Link>
@@ -186,19 +191,19 @@ export default function Header() {
                   <Link href="/find-players" className={navLinkClass} onClick={closeMobile}>Find players</Link>
                   <Link href="/tournaments" className={navLinkClass} onClick={closeMobile}>Tournaments</Link>
                   <Link href="/profile" className={navLinkClass} onClick={closeMobile}>
-                    <span className="flex items-center gap-3">
+                    <span className="flex items-center gap-3 min-w-0">
                       {session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? (
                         <img
                           src={session.user.user_metadata?.avatar_url || session.user.user_metadata?.image}
                           alt=""
-                          className="w-9 h-9 rounded-full object-cover border border-stone-soft"
+                          className="w-9 h-9 shrink-0 rounded-full object-cover border border-stone-soft"
                         />
                       ) : (
-                        <span className="w-9 h-9 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold">
+                        <span className="w-9 h-9 shrink-0 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold">
                           {(session.user.user_metadata?.name || session.user.email || 'U').charAt(0).toUpperCase()}
                         </span>
                       )}
-                      {session.user.user_metadata?.name || session.user.email || 'Profile'}
+                      <span className="truncate">{session.user.user_metadata?.name || session.user.email || 'Profile'}</span>
                     </span>
                   </Link>
                   <button type="button" onClick={handleSignOut} className={navLinkClass + ' w-full text-left'}>
@@ -213,7 +218,8 @@ export default function Header() {
               )}
             </nav>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </header>
   )
