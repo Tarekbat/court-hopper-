@@ -167,8 +167,15 @@ export default function Header() {
             onClick={closeMobile}
           />
           <div
-            className="fixed top-0 right-0 z-[101] h-full max-h-[100dvh] w-full max-w-sm max-w-[100vw] min-w-0 overflow-x-hidden bg-white shadow-xl md:hidden flex flex-col pb-[env(safe-area-inset-bottom)]"
-            style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))' }}
+            className="fixed inset-0 z-[101] h-full max-h-[100dvh] w-full min-w-0 overflow-x-hidden bg-white shadow-xl md:hidden flex flex-col"
+            style={{
+              height: '100dvh',
+              maxHeight: '100dvh',
+              paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))',
+              paddingRight: 'env(safe-area-inset-right, 0px)',
+              paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+              paddingLeft: 'env(safe-area-inset-left, 0px)',
+            }}
             role="dialog"
             aria-label="Navigation menu"
           >
