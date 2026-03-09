@@ -606,7 +606,7 @@ export default function CourtDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F0EB' }}>
         <div className="text-center">
           <p className="text-gray-500 text-lg">Loading court...</p>
         </div>
@@ -616,7 +616,7 @@ export default function CourtDetailPage() {
 
   if (error || !court) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F0EB' }}>
         <div className="text-center">
           <p className="text-gray-500 text-lg">{error || 'Court not found'}</p>
           <button
@@ -631,7 +631,7 @@ export default function CourtDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen court-detail-page" style={{ background: '#F5F0EB' }}>
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -645,20 +645,20 @@ export default function CourtDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="court-detail-main max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Left Column - Court Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Court Images Gallery */}
-            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="bg-white rounded-[20px] shadow-md overflow-hidden">
               {validImages && validImages.length > 0 ? (
                 <div className="relative">
                   {/* Main Image */}
-                  <div className="h-96 relative overflow-hidden group">
+                  <div className="relative overflow-hidden rounded-[20px] max-h-[480px] w-full group">
                     <img
                       src={validImages[0]}
                       alt={court.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full max-h-[480px] object-cover"
                       onError={(e) => {
                         // Fallback to gradient if image fails
                         e.currentTarget.style.display = 'none'
@@ -667,21 +667,24 @@ export default function CourtDetailPage() {
                       }}
                     />
                     {/* Fallback gradient */}
-                    <div className="hidden h-full bg-gradient-to-br from-clay-rust-dark via-clay-terracotta to-clay-rust-dark items-center justify-center">
+                    <div className="hidden min-h-[320px] max-h-[480px] h-full bg-gradient-to-br from-clay-rust-dark via-clay-terracotta to-clay-rust-dark items-center justify-center">
                       <span className="text-white text-xl font-semibold">No Image Available</span>
                     </div>
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      <span
-                        className={`px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-md border ${surfaceColors[court.surface] || 'bg-white/90 text-clay-rust-dark border-clay-terracotta/30'}`}
-                      >
-                        {court.surface}
-                      </span>
-                      {validImages.length > 1 && (
-                        <span className="px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-md border bg-blue-600/90 text-white border-blue-500/30">
-                          Main Photo
-                        </span>
-                      )}
-                    </div>
+                    {/* Surface type badge — SETRA style, admin overlay below */}
+                    <span
+                      className="absolute top-5 right-5 z-[1] rounded-[100px] py-1.5 px-4 text-[#1A1A1A]"
+                      style={{
+                        background: 'rgba(245,240,235,0.95)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {court.surface}
+                    </span>
                     {/* Admin Controls Overlay */}
                     {isAuthenticated && isAdmin && (
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -767,19 +770,26 @@ export default function CourtDetailPage() {
                   )}
                 </div>
               ) : (
-                <div className="h-96 bg-gradient-to-br from-clay-rust-dark via-clay-terracotta to-clay-rust-dark relative flex items-center justify-center">
+                <div className="min-h-[320px] max-h-[480px] rounded-[20px] overflow-hidden bg-gradient-to-br from-clay-rust-dark via-clay-terracotta to-clay-rust-dark relative flex items-center justify-center">
                   <span className="text-white text-xl font-semibold">No Image Available</span>
-                  <div className="absolute top-4 right-4">
-                    <span
-                      className={`px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-md border ${surfaceColors[court.surface] || 'bg-white/90 text-clay-rust-dark border-clay-terracotta/30'}`}
-                    >
-                      {court.surface}
-                    </span>
-                  </div>
+                  <span
+                    className="absolute top-5 right-5 z-[1] rounded-[100px] py-1.5 px-4 text-[#1A1A1A]"
+                    style={{
+                      background: 'rgba(245,240,235,0.95)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {court.surface}
+                  </span>
                 </div>
               )}
               
-              {/* Image Upload Section (for admin users only) */}
+              {/* Image Upload Section (for admin users only — hidden from regular users) */}
               {isAuthenticated && isAdmin && (
                 <div className="p-4 bg-gray-50 border-t border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">Manage Images</h3>
@@ -864,60 +874,131 @@ export default function CourtDetailPage() {
 
             {/* Court Details */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{court.name}</h1>
+              <h1
+                className="font-medium text-[#1A1A1A] mb-3"
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 'clamp(28px, 4vw, 40px)',
+                  marginBottom: '12px',
+                }}
+              >
+                {court.name}
+              </h1>
 
-              <div className="flex flex-wrap items-center gap-6 mb-6">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-700">
-                    {court.location.address}, {court.location.city}, {court.location.state} {court.location.zipCode}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-5 h-5 text-primary-600" />
-                  <span className="text-gray-700 font-medium">{court.distance} miles away</span>
-                </div>
+              <div
+                className="flex flex-wrap items-center gap-1.5 mb-6 text-[#8A8279]"
+                style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 400 }}
+              >
+                <span>
+                  {court.location.address}, {court.location.city}, {court.location.state} {court.location.zipCode}
+                </span>
+                <span aria-hidden>·</span>
+                <span>{court.distance} miles away</span>
               </div>
 
-              <div className="flex items-center gap-6 mb-6">
-                <div className="flex items-center gap-1">
-                  <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
-                  <span className="text-xl font-bold text-gray-900">{court.rating}</span>
-                  <span className="text-gray-500">({court.reviewCount} reviews)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-700">
-                    ${court.price.offPeak} - ${court.price.peak}/hr
-                  </span>
-                </div>
+              <div
+                className="flex flex-wrap items-center gap-2 mb-6 text-[#1A1A1A]"
+                style={{ marginBottom: '24px', fontFamily: "'DM Sans', sans-serif" }}
+              >
+                <Star className="w-5 h-5 shrink-0" style={{ fill: '#F5A623', color: '#F5A623' }} />
+                <span style={{ fontSize: '16px', fontWeight: 600 }}>{court.rating}</span>
+                <span style={{ fontSize: '14px', fontWeight: 400, color: '#8A8279' }}>
+                  ({court.reviewCount} reviews)
+                </span>
+                <span aria-hidden style={{ color: '#8A8279' }}>·</span>
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                  ${court.price.offPeak} - ${court.price.peak}/hr
+                </span>
               </div>
 
-              <p className="text-gray-700 mb-6 leading-relaxed">{court.description}</p>
+              <p
+                className="text-[#1A1A1A] mb-6"
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '15px',
+                  fontWeight: 300,
+                  lineHeight: 1.7,
+                }}
+              >
+                {court.description}
+              </p>
 
               {/* Court Information */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Court Information</h3>
-                <div className="flex items-center gap-4">
-                  <div className="px-4 py-2 bg-primary-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Courts</p>
-                    <p className="text-2xl font-bold text-terracotta">{court.totalCourts}</p>
+                <h3
+                  className="font-medium text-[#1A1A1A] mb-3"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}
+                >
+                  Court Information
+                </h3>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div
+                    className="rounded-xl px-5 py-4"
+                    style={{ background: '#F5F0EB', borderRadius: '12px', padding: '16px 20px' }}
+                  >
+                    <p
+                      className="uppercase text-[#8A8279] mb-0.5"
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        letterSpacing: '0.1em',
+                      }}
+                    >
+                      Total Courts
+                    </p>
+                    <p
+                      className="font-semibold text-[#C41E2A]"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '20px', fontWeight: 600 }}
+                    >
+                      {court.totalCourts}
+                    </p>
                   </div>
-                  <div className="px-4 py-2 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">Surface Type</p>
-                    <p className="text-lg font-semibold text-gray-900">{court.surface}</p>
+                  <div
+                    className="rounded-xl px-5 py-4"
+                    style={{ background: '#F5F0EB', borderRadius: '12px', padding: '16px 20px' }}
+                  >
+                    <p
+                      className="uppercase text-[#8A8279] mb-0.5"
+                      style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        letterSpacing: '0.1em',
+                      }}
+                    >
+                      Surface Type
+                    </p>
+                    <p
+                      className="font-semibold text-[#1A1A1A]"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '20px', fontWeight: 600 }}
+                    >
+                      {court.surface}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Amenities */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Amenities</h3>
+                <h3
+                  className="font-medium text-[#1A1A1A] mb-3"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}
+                >
+                  Amenities
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {court.amenities.map((amenity, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-primary-50 text-primary-700 rounded-lg text-sm font-medium"
+                      className="rounded-[100px] px-4 py-2 text-[#1A1A1A]"
+                      style={{
+                        background: '#F5F0EB',
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '13px',
+                        fontWeight: 400,
+                        padding: '8px 16px',
+                      }}
                     >
                       {amenity}
                     </span>
@@ -929,7 +1010,12 @@ export default function CourtDetailPage() {
             {/* Weekly View Toggle */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Weekly Availability</h3>
+                <h3
+                  className="font-medium text-[#1A1A1A]"
+                  style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}
+                >
+                  Weekly Availability
+                </h3>
                 <button
                   onClick={() => setShowWeeklyView(!showWeeklyView)}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
@@ -943,25 +1029,22 @@ export default function CourtDetailPage() {
 
           {/* Right Column - Booking */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md p-6 sticky top-24">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Book a Court</h2>
+            <div id="booking-widget" className="booking-widget">
+              <h2 className="booking-widget-heading">Book a Court</h2>
 
-              {/* Duration Selection - first so user picks how many hours they want */}
+              {/* Duration Selection */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-ink mb-3">
-                    <Clock className="w-4 h-4 inline mr-2" />
-                    Duration
-                </label>
-                <div className="grid grid-cols-4 gap-2">
+                <span className="booking-widget-label">
+                  <Clock className="w-4 h-4 booking-widget-label-icon shrink-0" />
+                  Duration
+                </span>
+                <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
                   {[1, 2, 3, 4].map((hours) => (
                     <button
                       key={hours}
+                      type="button"
                       onClick={() => handleDurationChange(hours)}
-                      className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                        duration === hours
-                          ? 'bg-ink text-white'
-                          : 'bg-stone-soft/50 text-ink hover:bg-stone-soft border border-stone-soft'
-                      }`}
+                      className={`booking-widget-btn ${duration === hours ? 'booking-widget-btn-selected' : ''}`}
                     >
                       {hours} {hours === 1 ? 'hour' : 'hours'}
                     </button>
@@ -971,12 +1054,10 @@ export default function CourtDetailPage() {
 
               {/* Date Selection */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-ink mb-3">
-                  <Calendar className="w-4 h-4 inline mr-2" />
+                <span className="booking-widget-label">
+                  <Calendar className="w-4 h-4 booking-widget-label-icon shrink-0" />
                   Select date
-                </label>
-                
-                {/* Quick Date Buttons */}
+                </span>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {[
                     { label: 'Today', date: startOfToday() },
@@ -989,49 +1070,41 @@ export default function CourtDetailPage() {
                     return (
                       <button
                         key={dateStr}
+                        type="button"
                         onClick={() => handleDateChange(date)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                          isSelected
-                            ? 'bg-ink text-white'
-                            : 'bg-stone-soft/50 text-ink hover:bg-stone-soft border border-stone-soft'
-                        }`}
+                        className={`booking-widget-btn ${isSelected ? 'booking-widget-btn-selected' : ''}`}
                       >
                         {label}
                       </button>
                     )
                   })}
                 </div>
-                
-                {/* Date Picker Input */}
-                <div className="relative">
-                  <input
-                    type="date"
-                    min={getDateString(startOfToday())}
-                    max={getDateString(addDays(startOfToday(), 90))}
-                    value={selectedDateString}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleDateChange(parseISO(e.target.value))
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 pr-10 border border-stone-soft rounded-lg text-sm focus:ring-2 focus:ring-terracotta/30 focus:border-terracotta transition-colors bg-white text-ink"
-                  />
-                </div>
-                
+                <input
+                  type="date"
+                  min={getDateString(startOfToday())}
+                  max={getDateString(addDays(startOfToday(), 90))}
+                  value={selectedDateString}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleDateChange(parseISO(e.target.value))
+                    }
+                  }}
+                  className="booking-widget-input"
+                />
                 {selectedDate && (
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-[#8A8279]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                     Selected: {formatDateDisplay(selectedDate)}
                   </p>
                 )}
               </div>
 
-              {/* Time Selection - only show times that have at least one court for selected duration */}
+              {/* Time Selection */}
               {selectedDateString && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-ink mb-3">
-                    <Clock className="w-4 h-4 inline mr-2" />
+                  <span className="booking-widget-label">
+                    <Clock className="w-4 h-4 booking-widget-label-icon shrink-0" />
                     Select time
-                  </label>
+                  </span>
                   <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
                     {getAvailableTimeSlots().map((timeSlot) => {
                       const availableCount = getAvailableCourtsForTimeAndDuration(timeSlot.time, duration).length
@@ -1040,26 +1113,21 @@ export default function CourtDetailPage() {
                       return (
                         <button
                           key={timeSlot.time}
+                          type="button"
                           onClick={() => {
                             setSelectedTime(timeSlot.time)
                             setSelectedCourt('')
                           }}
                           disabled={!hasAvailability}
-                          className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors relative ${
-                            isSelected
-                              ? 'bg-ink text-white'
-                              : hasAvailability
-                              ? 'bg-stone-soft/50 text-ink hover:bg-stone-soft border border-stone-soft'
-                              : 'bg-stone-soft/30 text-stone cursor-not-allowed border border-stone-soft'
-                          }`}
+                          className={`booking-widget-btn relative ${isSelected ? 'booking-widget-btn-selected' : ''}`}
                         >
                           {timeSlot.time}
                           {hasAvailability && (
                             <span
                               className={`absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 flex items-center justify-center text-xs font-bold rounded-full ${
                                 isSelected
-                                  ? 'bg-white text-ink ring-2 ring-white'
-                                  : 'bg-accent-green text-white'
+                                  ? 'bg-white text-[#C41E2A] ring-2 ring-white'
+                                  : 'bg-[#34C759] text-white'
                               }`}
                             >
                               {availableCount}
@@ -1075,19 +1143,14 @@ export default function CourtDetailPage() {
               {/* Court Selection */}
               {selectedTime && (
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-ink mb-3">
-                    Select court
-                  </label>
+                  <span className="booking-widget-label">Select court</span>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                     {getAvailableCourtsForTime().map((courtOption: IndividualCourt) => (
                       <button
                         key={courtOption.number}
+                        type="button"
                         onClick={() => setSelectedCourt(courtOption.number)}
-                        className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                          selectedCourt === courtOption.number
-                            ? 'bg-ink text-white'
-                            : 'bg-stone-soft/50 text-ink hover:bg-stone-soft border border-stone-soft'
-                        }`}
+                        className={`booking-widget-btn ${selectedCourt === courtOption.number ? 'booking-widget-btn-selected' : ''}`}
                       >
                         {courtOption.number}
                       </button>
@@ -1120,43 +1183,47 @@ export default function CourtDetailPage() {
 
               {/* Price Display */}
               {selectedTime && (
-                <div className="mb-6 p-4 bg-stone-soft/50 rounded-xl border border-stone-soft">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-stone">Price per hour</span>
-                    <span className="text-sm font-semibold text-ink">
-                      ${getPricePerHour(selectedTime)}
-                    </span>
+                <div className="mb-6 p-4 rounded-xl border border-[#E8E0D8]" style={{ background: '#F5F0EB' }}>
+                  <div className="flex justify-between items-center mb-1" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}>
+                    <span className="text-[#8A8279]">Price per hour</span>
+                    <span className="font-semibold text-[#1A1A1A]">${getPricePerHour(selectedTime)}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-ink">Total ({duration} {duration === 1 ? 'hour' : 'hours'})</span>
-                    <span className="text-lg font-bold text-terracotta">
-                      ${getPrice(selectedTime).toFixed(2)}
-                    </span>
+                  <div className="flex justify-between items-center mb-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    <span className="text-sm font-medium text-[#1A1A1A]">Total ({duration} {duration === 1 ? 'hour' : 'hours'})</span>
+                    <span className="text-lg font-bold text-[#C41E2A]">${getPrice(selectedTime).toFixed(2)}</span>
                   </div>
                   {isPeakTime(selectedTime) && (
-                    <p className="text-xs text-stone">Peak hours pricing</p>
+                    <p className="text-xs text-[#8A8279]" style={{ fontFamily: "'DM Sans', sans-serif" }}>Peak hours pricing</p>
                   )}
                 </div>
               )}
 
               {/* Recurring Booking Option */}
               <div className="mb-6">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="booking-widget-checkbox-wrap">
                   <input
                     type="checkbox"
                     checked={isRecurring}
                     onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="w-4 h-4 text-terracotta rounded focus:ring-terracotta/30"
                   />
-                  <span className="text-sm font-medium text-gray-700">Make this a recurring booking</span>
+                  <span className="booking-widget-checkbox-box">
+                    {isRecurring && (
+                      <svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 5l3.5 3.5L11 1" />
+                      </svg>
+                    )}
+                  </span>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', fontWeight: 400, color: '#1A1A1A' }}>
+                    Make this a recurring booking
+                  </span>
                 </label>
                 {isRecurring && (
-                  <div className="mt-3 ml-6">
-                    <label className="block text-xs text-gray-600 mb-2">Frequency</label>
+                  <div className="mt-3 ml-8">
+                    <label className="block text-xs text-[#8A8279] mb-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>Frequency</label>
                     <select
                       value={recurringFrequency}
                       onChange={(e) => setRecurringFrequency(e.target.value as 'weekly' | 'biweekly' | 'monthly')}
-                      className="w-full px-3 py-2 border border-stone-soft rounded-lg text-sm focus:ring-terracotta/30 focus:border-terracotta text-ink"
+                      className="booking-widget-input"
                     >
                       <option value="weekly">Weekly</option>
                       <option value="biweekly">Bi-weekly</option>
@@ -1166,11 +1233,12 @@ export default function CourtDetailPage() {
                 )}
               </div>
 
-              {/* Book Button */}
+              {/* Book Button — same onClick / Supabase booking flow */}
               <button
+                type="button"
                 onClick={handleBooking}
                 disabled={!selectedDateString || !selectedTime || !selectedCourt}
-                className="w-full btn-premium text-white py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="booking-widget-book-btn"
               >
                 Book now
               </button>
@@ -1178,6 +1246,20 @@ export default function CourtDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Mobile-only fixed bottom bar: price + Book Now (scrolls to widget) */}
+      <div className="booking-bottom-bar" aria-label="Booking summary">
+        <span className="booking-bottom-bar-price">
+          ${court.price.offPeak} – ${court.price.peak}/hr
+        </span>
+        <button
+          type="button"
+          className="booking-bottom-bar-btn"
+          onClick={() => document.getElementById('booking-widget')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+          Book Now
+        </button>
+      </div>
 
       {/* Booking Modal */}
       {showBookingModal && (

@@ -7,9 +7,16 @@ import { useMemo } from 'react'
 
 interface CourtCardProps {
   court: Court
+  variant?: 'default' | 'featured'
 }
 
-export default function CourtCard({ court }: CourtCardProps) {
+export default function CourtCard({ court, variant = 'default' }: CourtCardProps) {
+  const todayName = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'long' }), [])
+  const slotsTodayCount = useMemo(() => {
+    const daySlots = court.timeSlots?.[todayName]
+    if (!daySlots || !Array.isArray(daySlots)) return 0
+    return daySlots.filter((s) => s.availableCourts?.some((c) => c.isAvailable)).length
+  }, [court.timeSlots, todayName])
   // Ensure images is always an array and validate URLs
   const images = useMemo(() => {
     let imgArray: string[] = []
@@ -64,6 +71,98 @@ export default function CourtCard({ court }: CourtCardProps) {
       key.toLowerCase().includes(amenity.toLowerCase())
     )
     return iconKey ? amenityIcons[iconKey] : null
+  }
+
+  if (variant === 'featured') {
+    return (
+      <Link
+        href={`/court/${court.id}`}
+        className="featured-court-card flex-[1_1_300px] max-w-[400px] cursor-pointer block transition-transform duration-500 hover:-translate-y-2"
+        style={{ transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)' }}
+      >
+        <div className="group h-full">
+          <div
+            className="featured-card-image h-[280px] rounded-2xl overflow-hidden relative transition-transform duration-[0.6s] group-hover:scale-[1.06]"
+            style={{
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              transformOrigin: 'center center',
+            }}
+          >
+            {images && images.length > 0 && images[0] ? (
+              <img
+                src={images[0]}
+                alt={court.name}
+                className="w-full h-full object-cover"
+                style={{ transform: 'translateZ(0)' }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                  if (fallback) fallback.style.display = 'block'
+                }}
+              />
+            ) : null}
+            {(!images || images.length === 0 || !images[0]) && (
+              <div className="w-full h-full bg-gradient-to-br from-stone-soft/50 via-beige to-stone-soft/50" style={{ display: 'block' }} />
+            )}
+            {/* Rating badge */}
+            <div
+              className="absolute top-4 left-4 flex items-center gap-1.5 rounded-[100px] px-3.5 py-1.5"
+              style={{
+                background: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                fontWeight: 500,
+                color: '#1A1A1A',
+              }}
+            >
+              <span style={{ color: '#F5A623' }}>★</span> {court.rating}
+            </div>
+            {/* Availability badge */}
+            <div
+              className="absolute bottom-4 right-4 rounded-[100px] px-3.5 py-1.5"
+              style={{
+                background: 'rgba(26,26,26,0.8)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '11px',
+                fontWeight: 500,
+                color: 'white',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {slotsTodayCount} slots today
+            </div>
+          </div>
+          <div className="mt-4">
+            <h3
+              className="font-display font-medium text-[#1A1A1A] mb-1"
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '20px',
+              }}
+            >
+              {court.name}
+            </h3>
+            <p
+              className="text-[13px] font-normal text-[#8A8279]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {court.location.city}, {court.location.state}
+            </p>
+            <p
+              className="featured-card-arrow text-right mt-1 text-[12px] font-normal text-[#8A8279]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+              aria-hidden
+            >
+              →
+            </p>
+          </div>
+        </div>
+      </Link>
+    )
   }
 
   return (

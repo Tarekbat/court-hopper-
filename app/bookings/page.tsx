@@ -207,7 +207,7 @@ export default function BookingsPage() {
       <div className="min-h-screen bg-beige">
         <Header />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+        <main className="max-w-7xl mx-auto px-5 py-10 md:py-12">
           {loading ? (
             <LoadingSkeleton count={3} variant="card" />
           ) : error ? (
@@ -236,10 +236,10 @@ export default function BookingsPage() {
             />
           ) : (
             <>
-              <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
-                <h2 className="text-2xl md:text-3xl font-display text-ink">
+              <div className="internal-page-header">
+                <h1 className="internal-page-title">
                   My bookings
-                </h2>
+                </h1>
                 <div className="flex items-center gap-1 bg-white rounded-xl p-1 border border-stone-soft shadow-sm">
                   <button
                     onClick={() => setFilter('all')}

@@ -12,6 +12,11 @@ import UpcomingBookings from '@/components/UpcomingBookings'
 import LoggedInDashboard from '@/components/LoggedInDashboard'
 import FeaturedCourts from '@/components/FeaturedCourts'
 import Header from '@/components/Header'
+import HowItWorksSection from '@/components/HowItWorksSection'
+import CommunitySection from '@/components/CommunitySection'
+import ForBusinessSection from '@/components/ForBusinessSection'
+import Footer from '@/components/Footer'
+import MarqueeStrip from '@/components/MarqueeStrip'
 import { Map, List } from '@/components/Icons'
 import { useRouter } from 'next/navigation'
 
@@ -229,62 +234,124 @@ export default function Home() {
     <div className="min-h-screen bg-beige">
       <Header />
 
-      {/* Hero Section */}
-      <section className="relative text-white py-28 md:py-36 min-h-[560px] md:min-h-[640px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          {heroImageUrl ? (
-            <div className="relative w-full h-full">
-              <img
-                src={heroImageUrl}
-                alt="Tennis Courts"
-                className="w-full h-full object-cover scale-105"
-                style={{ transform: 'scale(1.05)' }}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                  if (fallback) fallback.classList.remove('hidden')
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/55" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/15" />
-            </div>
-          ) : null}
-          <div className={`absolute inset-0 bg-gradient-to-br from-beige via-beige-dark to-beige ${heroImageUrl ? 'hidden' : ''}`} />
+      {/* Hero Section — Setra brand */}
+      <section
+        className="relative min-h-screen flex flex-col justify-center overflow-hidden pt-[120px] pb-20 px-6 md:px-[60px]"
+        style={{ background: '#F5F0EB' }}
+      >
+        {/* Subtle grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(#1A1A1A 1px, transparent 1px), linear-gradient(90deg, #1A1A1A 1px, transparent 1px)',
+            backgroundSize: '80px 80px',
+          }}
+        />
+        {/* Large decorative italic S */}
+        <div
+          className="absolute right-[-40px] top-1/2 -translate-y-1/2 pointer-events-none select-none font-serif italic font-bold leading-none text-[#C41E2A]"
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 'min(50vw, 600px)',
+            lineHeight: 0.8,
+            opacity: 0.04,
+          }}
+          aria-hidden
+        >
+          S
         </div>
-        <div className="absolute inset-0 bg-black/35 z-[1]" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
-          <div className="text-center mb-10 animate-fade-in">
-            <h1 className="text-display-xl font-display mb-6 leading-[0.98] tracking-tight text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.3)]">
-              <span className="block">Feel the</span>
-              <span className="block mt-1">movement</span>
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto font-normal leading-relaxed mb-10 drop-shadow-md">
-              Premium courts and world-class facilities. Book your court and elevate your game.
-            </p>
-          </div>
-
-          <div className="max-w-2xl mx-auto mb-10 animate-slide-up">
-            <SearchBar onSearch={setSearchQuery} />
-          </div>
-
-          <div className="max-w-2xl mx-auto text-center animate-slide-up">
-            <button
-              onClick={() => {
-                setShowFilters(true)
-                setTimeout(() => {
-                  document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
-                }, 100)
-              }}
-              className="btn-premium px-10 py-3.5 text-white font-semibold text-base rounded-xl"
+        <div className="relative z-[2] w-full max-w-[900px]">
+          {/* Now Live in Seattle badge */}
+          <div
+            className="hero-anim-fade-up hero-delay-1 inline-flex items-center gap-2.5 rounded-[100px] py-2 pl-3 pr-[18px] mb-10"
+            style={{ background: 'rgba(196,30,42,0.06)' }}
+          >
+            <div
+              className="h-2 w-2 rounded-full bg-[#C41E2A] hero-pulse-dot shrink-0"
+              aria-hidden
+            />
+            <span
+              className="text-xs font-medium uppercase tracking-[0.1em] text-[#C41E2A]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Book a court
-            </button>
+              Now Live in Seattle
+            </span>
           </div>
 
-          {/* Quick Actions */}
-          <div className="max-w-6xl mx-auto mt-16 animate-slide-up">
-            <QuickActions 
+          {/* Main heading */}
+          <h1
+            className="hero-anim-fade-up hero-delay-2 font-display font-medium text-[#1A1A1A] leading-[1.05] tracking-[-0.03em] mb-7"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 'clamp(48px, 7vw, 88px)',
+            }}
+          >
+            Your city&apos;s best
+            <br />
+            courts, <span className="text-[#C41E2A] italic">one tap</span>
+            <br />
+            away
+          </h1>
+
+          {/* Subtitle */}
+          <p
+            className="hero-anim-fade-up hero-delay-3 text-lg font-light text-[#8A8279] leading-[1.7] max-w-[480px] mb-12"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Discover premium tennis courts. Book instantly. Connect with players who match your level. The game starts here.
+          </p>
+
+          {/* CTAs + Search row */}
+          <div className="hero-anim-fade-up hero-delay-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4 flex-wrap">
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFilters(true)
+                  setTimeout(() => {
+                    document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
+                  }, 100)
+                }}
+                className="btn-premium inline-flex items-center justify-center px-10 py-4 text-sm font-medium"
+              >
+                Find a Court
+              </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                className="btn-secondary inline-flex items-center justify-center px-9 py-[15px] text-sm"
+              >
+                How It Works
+              </button>
+            </div>
+            <div className="w-full sm:max-w-md">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+          </div>
+
+          {/* Social proof */}
+          <div className="hero-anim-fade-up hero-delay-5 mt-16 flex items-center gap-5">
+            <div className="flex -space-x-2.5">
+              {['#E8434E', '#C41E2A', '#9B1620', '#6B3A3E'].map((color, i) => (
+                <div
+                  key={i}
+                  className="h-9 w-9 rounded-full flex items-center justify-center text-white text-xs font-semibold border-[2.5px] border-[#F5F0EB] shrink-0 first:ml-0"
+                  style={{ background: color, marginLeft: i ? -10 : 0, fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {['A', 'M', 'J', 'K'][i]}
+                </div>
+              ))}
+            </div>
+            <div>
+              <span className="text-sm font-medium text-[#1A1A1A]" style={{ fontFamily: "'DM Sans', sans-serif" }}>2,400+ players</span>
+              <span className="text-sm font-light text-[#8A8279] ml-1.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>already on SETRA</span>
+            </div>
+          </div>
+
+          {/* Quick Actions — preserved and integrated */}
+          <div className="mt-12 hero-anim-fade-up hero-delay-5">
+            <QuickActions
               onMapViewClick={() => {
                 setShowAvailableNow(false)
                 setShowFilters(true)
@@ -298,10 +365,7 @@ export default function Home() {
                 setShowAvailableNow(true)
                 setShowFilters(true)
                 setViewMode('list')
-                setFilters({
-                  ...filters,
-                  maxDistance: 25,
-                })
+                setFilters({ ...filters, maxDistance: 25 })
                 setTimeout(() => {
                   document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
                 }, 100)
@@ -310,10 +374,7 @@ export default function Home() {
                 setSearchQuery('')
                 setShowAvailableNow(false)
                 setShowFilters(true)
-                setFilters({
-                  ...filters,
-                  minRating: 4.5,
-                })
+                setFilters({ ...filters, minRating: 4.5 })
                 setTimeout(() => {
                   document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
                 }, 100)
@@ -322,6 +383,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <MarqueeStrip />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 relative z-0 bg-beige">
@@ -466,11 +529,19 @@ export default function Home() {
           )}
         </div>
 
+        <HowItWorksSection />
+
+        <CommunitySection />
+
+        <ForBusinessSection />
+
         {/* Weekly Availability Section */}
         <div className="mt-16 relative z-0 fade-in-up">
           <WeeklyAvailability />
         </div>
       </main>
+
+      <Footer />
     </div>
   )
 }

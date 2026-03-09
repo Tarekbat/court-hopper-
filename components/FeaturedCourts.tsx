@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef } from 'react'
 import { Court } from '@/types'
 import CourtCard from '@/components/CourtCard'
 
@@ -96,22 +96,101 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts }: 
       .slice(0, 6)
   }, [courts, excludeIds])
 
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [activeCardIndex, setActiveCardIndex] = useState(0)
+
+  useEffect(() => {
+    const refs = cardRefs.current
+    if (refs.length === 0) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          const index = refs.indexOf(entry.target as HTMLDivElement)
+          if (index !== -1) setActiveCardIndex(index)
+        })
+      },
+      { root: null, rootMargin: '0px', threshold: 0.5 }
+    )
+    refs.forEach((el) => el && observer.observe(el))
+    return () => observer.disconnect()
+  }, [featuredCourts.length])
+
   if (featuredCourts.length === 0) {
     return null
   }
 
   return (
-    <div className="animate-fade-in">
-      <div className="mb-8">
-        <h2 className="text-3xl md:text-4xl font-display text-ink mb-1">Featured courts</h2>
-        <p className="text-stone text-base">Top-rated courts near you</p>
+    <section
+      className="featured-courts-section animate-fade-in"
+      style={{
+        background: '#FFFFFF',
+        padding: '100px 60px',
+      }}
+    >
+      <div
+        className="featured-courts-header flex flex-wrap justify-between items-end gap-4"
+        style={{ marginBottom: '56px' }}
+      >
+        <div>
+          <span
+            className="block uppercase tracking-[0.2em] font-medium"
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '11px',
+              color: '#C41E2A',
+              marginBottom: '14px',
+            }}
+          >
+            Featured
+          </span>
+          <h2
+            className="font-display font-medium text-[#1A1A1A] leading-tight"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 'clamp(32px, 4vw, 48px)',
+            }}
+          >
+            Curated for <span className="italic text-[#C41E2A]">you</span>
+          </h2>
+        </div>
+        <a
+          href="#results-section"
+          className="inline-flex items-center gap-2 uppercase font-medium tracking-[0.06em] transition-opacity hover:opacity-80"
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: '#C41E2A',
+          }}
+        >
+          View all courts →
+        </a>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {featuredCourts.map((court) => (
-          <CourtCard key={court.id} court={court} />
+      <div className="featured-courts-cards flex flex-wrap gap-7" style={{ gap: '28px' }}>
+        {featuredCourts.map((court, i) => (
+          <div
+            key={court.id}
+            ref={(el) => { cardRefs.current[i] = el }}
+            className="featured-court-snap"
+          >
+            <CourtCard court={court} variant="featured" />
+          </div>
         ))}
       </div>
-    </div>
+      <div className="featured-courts-dots flex justify-center gap-2 mt-4" aria-hidden>
+        {featuredCourts.map((_, i) => (
+          <span
+            key={i}
+            className="rounded-full transition-colors duration-200"
+            style={{
+              width: 6,
+              height: 6,
+              background: i === activeCardIndex ? '#C41E2A' : '#E8E0D8',
+            }}
+          />
+        ))}
+      </div>
+    </section>
   )
 }
 

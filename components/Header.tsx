@@ -6,19 +6,29 @@ import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase-client'
-import { List, X } from '@/components/Icons'
+import { X } from '@/components/Icons'
 
-const navLinkClass = 'block w-full min-w-0 px-4 py-3 text-left text-ink font-medium rounded-xl hover:bg-beige hover:border-stone border border-transparent transition-all overflow-hidden text-ellipsis'
-const navLinkClassPrimary = 'block w-full min-w-0 px-4 py-3 text-left text-white font-semibold rounded-xl bg-terracotta hover:bg-terracotta-dark border border-transparent transition-all overflow-hidden text-ellipsis'
+/* Mobile menu: nav links SETRA brand — Playfair 32px, 28px gap, 44px min tap height */
+const mobileNavLinkClass =
+  'flex items-center min-h-[44px] w-full text-left font-medium text-[#1A1A1A] transition-colors hover:text-[#C41E2A]'
+const mobileNavLinkStyle = { fontFamily: "'Playfair Display', serif", fontSize: '32px' }
 
 export default function Header() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
 
   useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY >= 40)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -61,114 +71,185 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-stone-soft/80 shadow-[0_1px_0_0_rgba(255,255,255,0.8)_inset]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <header
+      className="fixed top-0 left-0 right-0 z-[100] transition-[padding,background-color,border-color] duration-[0.4s]"
+      style={{
+        transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        padding: scrolled ? '14px 40px' : '22px 40px',
+        background: scrolled ? 'rgba(245, 240, 235, 0.92)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(20px)' : 'none',
+        WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+        borderBottom: scrolled ? '1px solid #E8E0D8' : '1px solid transparent',
+      }}
+    >
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-4 group">
-            <div className="relative">
-              <div className="bg-gradient-to-br from-terracotta-dark to-terracotta p-[10px] flex items-center justify-center w-12 h-12 rounded-xl group-hover:scale-[1.02] transition-transform duration-300 shadow-sm">
-                <span className="text-white text-2xl leading-none">🎾</span>
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl font-display text-ink group-hover:text-terracotta transition-colors tracking-tight">
-                Tennis Scheduler
-              </h1>
-              <p className="text-[11px] font-medium text-stone tracking-[0.12em]">Book courts, play more</p>
-            </div>
+          <Link href="/" className="flex items-baseline gap-3 group">
+            <span
+              className="font-display text-[22px] md:text-[26px] font-semibold text-[#C41E2A] tracking-[-0.02em] group-hover:opacity-90 transition-opacity"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
+              SETRA
+            </span>
+            <span
+              className="hidden md:inline text-[9px] font-normal text-[#8A8279] uppercase tracking-[0.2em]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Access, Curated
+            </span>
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-8">
             {loading ? (
               <div className="px-4 py-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-terracotta border-t-transparent"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#C41E2A] border-t-transparent" />
               </div>
             ) : session ? (
               <>
-                <Link href="/bookings" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
-                  My bookings
+                <Link href="/find-players" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Discover
                 </Link>
-                <Link href="/groups" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
-                  Groups
+                <Link href="/bookings" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Courts
                 </Link>
-                <Link href="/find-players" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
-                  Find players
+                <Link href="/groups" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Community
                 </Link>
-                <Link href="/tournaments" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
-                  Tournaments
+                <Link href="/tournaments" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  For Business
                 </Link>
-                <div className="flex items-center gap-3 pl-3 border-l border-stone-soft">
-                  <Link href="/profile" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity group">
+                <div className="w-px h-5 bg-[#E8E0D8] shrink-0" style={{ height: '20px' }} aria-hidden />
+                <div className="flex items-center gap-3 shrink-0" style={{ gap: '12px' }}>
+                  <Link href="/profile" className="shrink-0 hover:opacity-90 transition-opacity" aria-label="Profile">
                     {session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? (
                       <img
                         src={session.user.user_metadata?.avatar_url || session.user.user_metadata?.image}
                         alt="Profile"
-                        className="w-9 h-9 rounded-full object-cover border border-stone-soft group-hover:border-terracotta/40 transition-colors"
+                        className="w-8 h-8 rounded-full object-cover border border-[#E8E0D8]"
+                        style={{ width: 32, height: 32 }}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
                           e.currentTarget.nextElementSibling?.classList.remove('hidden')
                         }}
                       />
                     ) : null}
-                    <div className={`w-9 h-9 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold ${session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? 'hidden' : ''}`}>
+                    <div
+                      className={`rounded-full bg-[#C41E2A] flex items-center justify-center text-white font-semibold ${session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? 'hidden' : ''}`}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: '13px',
+                      }}
+                    >
                       {(session.user.user_metadata?.name || session.user.email || 'U').charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-ink group-hover:text-terracotta transition-colors">
-                      {session.user.user_metadata?.name || session.user.email}
-                    </span>
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#C41E2A] transition-colors truncate max-w-[120px]"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    {(() => {
+                      const raw = session.user.user_metadata?.name || session.user.email || ''
+                      if (typeof raw === 'string' && raw.includes(' ')) return raw.split(/\s+/)[0]
+                      if (typeof raw === 'string' && raw.includes('@')) return raw.split('@')[0]
+                      return raw || 'Account'
+                    })()}
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="px-4 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium"
+                    className="text-[13px] font-normal text-[#8A8279] hover:text-[#C41E2A] transition-colors bg-transparent border-none cursor-pointer py-0 shrink-0"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
                   >
                     Sign out
                   </button>
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/auth/signin" className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium">
-                  Sign in
+              <div className="flex items-center gap-4">
+                <Link href="/auth/signin" className="text-[13px] font-medium text-[#1A1A1A] hover:text-[#C41E2A] transition-colors bg-transparent py-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Sign In
                 </Link>
-                <Link href="/auth/signup" className="px-5 py-2.5 bg-terracotta text-white rounded-xl hover:bg-terracotta-dark transition-all text-sm font-semibold btn-premium">
-                  Sign up
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center justify-center text-[12px] font-medium text-white bg-[#C41E2A] hover:bg-[#9B1620] rounded-[100px] px-6 py-2.5 uppercase tracking-[0.06em] transition-all duration-300"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Get Started
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Mobile: hamburger */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Mobile: hamburger (24px wide, 2px stroke, 44x44 tap target) — animates to X when open */}
+          <div className="flex md:hidden items-center">
             {loading ? (
-              <div className="p-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-terracotta border-t-transparent"></div>
+              <div className="min-w-[44px] min-h-[44px] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#C41E2A] border-t-transparent" />
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                className="p-2.5 rounded-xl text-ink hover:bg-beige border border-stone-soft transition-all"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[#1A1A1A] hover:bg-[#F5F0EB] rounded-lg transition-colors"
                 aria-label="Open menu"
+                aria-expanded={mobileOpen}
               >
-                <List className="w-6 h-6" />
+                <span className="relative w-6 h-5 flex flex-col justify-center items-center" aria-hidden>
+                  <span
+                    className="absolute left-0 w-6 rounded-full bg-[#1A1A1A] origin-center transition-all duration-300 ease-[ease]"
+                    style={{
+                      height: 2,
+                      top: mobileOpen ? '50%' : 0,
+                      marginTop: mobileOpen ? -1 : 0,
+                      transform: mobileOpen ? 'rotate(45deg)' : 'none',
+                    }}
+                  />
+                  <span
+                    className="absolute left-0 w-6 rounded-full bg-[#1A1A1A] transition-opacity duration-300 ease-[ease]"
+                    style={{
+                      height: 2,
+                      top: '50%',
+                      marginTop: -1,
+                      opacity: mobileOpen ? 0 : 1,
+                    }}
+                  />
+                  <span
+                    className="absolute left-0 w-6 rounded-full bg-[#1A1A1A] origin-center transition-all duration-300 ease-[ease]"
+                    style={{
+                      height: 2,
+                      bottom: mobileOpen ? '50%' : 0,
+                      marginBottom: mobileOpen ? -1 : 0,
+                      transform: mobileOpen ? 'rotate(-45deg)' : 'none',
+                    }}
+                  />
+                </span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Mobile slide-out menu: portaled to body so it's never clipped by header or hero */}
-      {mounted && mobileOpen && createPortal(
+      {/* Mobile menu: full-screen overlay + panel sliding from right, z-200, SETRA brand */}
+      {mounted && createPortal(
         <>
+          {/* Backdrop — only when open */}
+          {mobileOpen && (
+            <div
+              className="fixed inset-0 z-[200] bg-black/40 md:hidden"
+              aria-hidden
+              onClick={closeMobile}
+            />
+          )}
+          {/* Panel: slide from right, 0.4s cubic-bezier(0.22, 1, 0.36, 1); when closed, off-screen and no pointer events */}
           <div
-            className="fixed inset-0 z-[100] bg-black/50 md:hidden"
-            aria-hidden
-            onClick={closeMobile}
-          />
-          <div
-            className="fixed inset-0 z-[101] h-full max-h-[100dvh] w-full min-w-0 overflow-x-hidden bg-white shadow-xl md:hidden flex flex-col"
+            className="fixed inset-y-0 right-0 z-[201] w-full max-w-[100vw] md:w-[min(400px,100vw)] md:max-w-none md:hidden flex flex-col bg-[#F5F0EB] shadow-2xl transition-transform duration-[0.4s]"
             style={{
+              transform: mobileOpen ? 'translateX(0)' : 'translateX(100%)',
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              pointerEvents: mobileOpen ? 'auto' : 'none',
               height: '100dvh',
               maxHeight: '100dvh',
               paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))',
@@ -178,51 +259,86 @@ export default function Header() {
             }}
             role="dialog"
             aria-label="Navigation menu"
+            aria-hidden={!mobileOpen}
           >
-            <div className="flex shrink-0 items-center justify-between gap-2 p-4 border-b border-stone-soft min-w-0">
-              <span className="text-lg font-display font-semibold text-ink truncate">Menu</span>
+            <div className="flex shrink-0 items-center justify-end min-h-[44px]">
               <button
                 type="button"
                 onClick={closeMobile}
-                className="p-2 rounded-lg text-ink hover:bg-beige transition-colors"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center text-[#1A1A1A] hover:bg-[#E8E0D8] rounded-lg transition-colors"
                 aria-label="Close menu"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <nav className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-4 space-y-2">
-              {session ? (
-                <>
-                  <Link href="/bookings" className={navLinkClass} onClick={closeMobile}>My bookings</Link>
-                  <Link href="/groups" className={navLinkClass} onClick={closeMobile}>Groups</Link>
-                  <Link href="/find-players" className={navLinkClass} onClick={closeMobile}>Find players</Link>
-                  <Link href="/tournaments" className={navLinkClass} onClick={closeMobile}>Tournaments</Link>
-                  <Link href="/profile" className={navLinkClass} onClick={closeMobile}>
-                    <span className="flex items-center gap-3 min-w-0">
+            <nav className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto py-6">
+              <div className="flex flex-col" style={{ gap: '28px' }}>
+                <Link href="/find-players" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Discover
+                </Link>
+                <Link href="/bookings" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Courts
+                </Link>
+                <Link href="/groups" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Community
+                </Link>
+                <Link href="/tournaments" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  For Business
+                </Link>
+              </div>
+              <div className="my-6 h-px bg-[#E8E0D8]" aria-hidden />
+              <div className="flex flex-col gap-3">
+                {session ? (
+                  <>
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-3 min-h-[44px] w-full text-left font-medium text-[#1A1A1A] hover:text-[#C41E2A] transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}
+                      onClick={closeMobile}
+                    >
                       {session.user.user_metadata?.avatar_url || session.user.user_metadata?.image ? (
                         <img
                           src={session.user.user_metadata?.avatar_url || session.user.user_metadata?.image}
                           alt=""
-                          className="w-9 h-9 shrink-0 rounded-full object-cover border border-stone-soft"
+                          className="w-9 h-9 shrink-0 rounded-full object-cover border border-[#E8E0D8]"
                         />
                       ) : (
-                        <span className="w-9 h-9 shrink-0 rounded-full bg-terracotta flex items-center justify-center text-white text-sm font-semibold">
+                        <span className="w-9 h-9 shrink-0 rounded-full bg-[#C41E2A] flex items-center justify-center text-white text-sm font-semibold">
                           {(session.user.user_metadata?.name || session.user.email || 'U').charAt(0).toUpperCase()}
                         </span>
                       )}
                       <span className="truncate">{session.user.user_metadata?.name || session.user.email || 'Profile'}</span>
-                    </span>
-                  </Link>
-                  <button type="button" onClick={handleSignOut} className={navLinkClass + ' w-full text-left'}>
-                    Sign out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signin" className={navLinkClass} onClick={closeMobile}>Sign in</Link>
-                  <Link href="/auth/signup" className={navLinkClassPrimary} onClick={closeMobile}>Sign up</Link>
-                </>
-              )}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex items-center min-h-[44px] w-full text-left font-medium text-[#1A1A1A] hover:text-[#C41E2A] transition-colors bg-transparent border-none cursor-pointer"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/signin"
+                      className="flex items-center min-h-[44px] w-full font-medium text-[#1A1A1A] hover:text-[#C41E2A] transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px' }}
+                      onClick={closeMobile}
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      className="flex items-center justify-center min-h-[44px] w-full font-medium text-white bg-[#C41E2A] hover:bg-[#9B1620] rounded-[100px] uppercase tracking-[0.08em] transition-colors"
+                      style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px' }}
+                      onClick={closeMobile}
+                    >
+                      Get Started
+                    </Link>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         </>,

@@ -184,10 +184,20 @@ export default function FindPlayersPage() {
       <div className="min-h-screen bg-beige">
         <Header />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
-          <h1 className="text-2xl md:text-3xl font-display text-ink mb-8">
-            Find players
-          </h1>
+        <main className="max-w-7xl mx-auto px-5 py-10 md:py-12">
+          <div className="internal-page-header">
+            <h1 className="internal-page-title">
+              Find players
+            </h1>
+            <button
+              type="button"
+              onClick={() => setShowAddProfile(true)}
+              className="internal-page-btn inline-flex items-center justify-center gap-2"
+            >
+              <UserPlus className="w-5 h-5" />
+              Add profile
+            </button>
+          </div>
 
           <div className="flex flex-wrap items-center gap-2 mb-6">
             <div className="bg-white rounded-xl p-1 border border-stone-soft shadow-sm flex touch-manipulation">

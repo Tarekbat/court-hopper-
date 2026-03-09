@@ -252,33 +252,35 @@ export default function ProfilePage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-beige">
         <Header />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
-          <div className="mb-8">
-            <Link
-              href="/"
-              className="inline-flex items-center text-ink hover:text-terracotta transition-colors mb-4 font-medium text-sm"
-            >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+        <div className="max-w-4xl mx-auto px-5 py-10 md:py-12">
+          <div className="internal-page-header">
+            <div>
+              <Link
+                href="/"
+                className="inline-flex items-center text-ink hover:text-terracotta transition-colors mb-4 font-medium text-sm"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              Back to home
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-display text-ink mb-1">
-              My profile
-            </h1>
-            <p className="text-stone text-base">
-              Manage your account information
-            </p>
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                Back to home
+              </Link>
+              <h1 className="internal-page-title mb-1">
+                My profile
+              </h1>
+              <p className="text-stone text-base">
+                Manage your account information
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6 md:p-8">
