@@ -900,7 +900,7 @@ export default function CourtDetailPage() {
                 className="flex flex-wrap items-center gap-2 mb-6 text-[#1A1A1A]"
                 style={{ marginBottom: '24px', fontFamily: "'DM Sans', sans-serif" }}
               >
-                <Star className="w-5 h-5 shrink-0" style={{ fill: '#F5A623', color: '#F5A623' }} />
+                <span className="inline-block w-5 h-5 shrink-0 text-[#F5A623]"><Star className="w-full h-full fill-current" /></span>
                 <span style={{ fontSize: '16px', fontWeight: 600 }}>{court.rating}</span>
                 <span style={{ fontSize: '14px', fontWeight: 400, color: '#8A8279' }}>
                   ({court.reviewCount} reviews)
