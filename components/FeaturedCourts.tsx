@@ -7,9 +7,49 @@ import CourtCard from '@/components/CourtCard'
 interface FeaturedCourtsProps {
   excludeIds?: string[]
   courts?: Court[]
+  /** Opens full court grid on the home page (parent should set filters + scroll). */
+  onViewAll?: () => void
 }
 
-export default function FeaturedCourts({ excludeIds = [], courts: propCourts }: FeaturedCourtsProps) {
+function transformCourtRow(court: any): Court {
+  const totalCourts = court.total_courts || court.totalCourts || 1
+  const lat = court.latitude ?? null
+  const lng = court.longitude ?? null
+  return {
+    id: court.id,
+    name: court.name,
+    location: {
+      address: court.address,
+      city: court.city,
+      state: court.state,
+      zipCode: court.zip_code || court.zipCode || '',
+      coordinates: { lat, lng },
+    },
+    distance: court.distance || 0,
+    price: {
+      peak: court.peak_price || court.peakPrice || 0,
+      offPeak: court.off_peak_price || court.offPeakPrice || 0,
+    },
+    surface: court.surface,
+    rating: court.rating || 0,
+    reviewCount: court.review_count || court.reviewCount || 0,
+    amenities:
+      typeof court.amenities === 'string' ? JSON.parse(court.amenities) : court.amenities || [],
+    images: typeof court.images === 'string' ? JSON.parse(court.images) : court.images || [],
+    availableDays:
+      typeof court.available_days === 'string'
+        ? JSON.parse(court.available_days)
+        : typeof court.availableDays === 'string'
+          ? JSON.parse(court.availableDays)
+          : court.available_days || court.availableDays || [],
+    totalCourts,
+    courtNumbers: Array.from({ length: totalCourts }, (_, i) => `Court ${i + 1}`),
+    timeSlots: {},
+    description: court.description || '',
+  }
+}
+
+export default function FeaturedCourts({ excludeIds = [], courts: propCourts, onViewAll }: FeaturedCourtsProps) {
   const [courts, setCourts] = useState<Court[]>(propCourts || [])
 
   // Fetch courts if not provided
@@ -26,57 +66,16 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts }: 
         const data = await response.json()
         
         if (!data || data.length === 0) {
-          setCourts([])
+          const { mockCourts } = await import('@/data/mockCourts')
+          setCourts(mockCourts)
           return
         }
-        
-        // Transform API data to match Court type
-        const transformedCourts: Court[] = data.map((court: any) => {
-          const totalCourts = court.total_courts || court.totalCourts || 1
-          
-          return {
-            id: court.id,
-            name: court.name,
-            location: {
-              address: court.address,
-              city: court.city,
-              state: court.state,
-              zipCode: court.zip_code || court.zipCode || '',
-              coordinates: {
-                lat: court.latitude || 0,
-                lng: court.longitude || 0,
-              },
-            },
-            distance: court.distance || 0,
-            price: {
-              peak: court.peak_price || court.peakPrice || 0,
-              offPeak: court.off_peak_price || court.offPeakPrice || 0,
-            },
-            surface: court.surface,
-            rating: court.rating || 0,
-            reviewCount: court.review_count || court.reviewCount || 0,
-            amenities: typeof court.amenities === 'string' 
-              ? JSON.parse(court.amenities) 
-              : (court.amenities || []),
-            images: typeof court.images === 'string' 
-              ? JSON.parse(court.images) 
-              : (court.images || []),
-            availableDays: typeof court.available_days === 'string'
-              ? JSON.parse(court.available_days)
-              : (typeof court.availableDays === 'string'
-                ? JSON.parse(court.availableDays)
-                : (court.available_days || court.availableDays || [])),
-            totalCourts: totalCourts,
-            courtNumbers: Array.from({ length: totalCourts }, (_, i) => `Court ${i + 1}`),
-            timeSlots: {},
-            description: court.description || '',
-          }
-        })
-        
-        setCourts(transformedCourts)
+
+        setCourts(data.map(transformCourtRow))
       } catch (error) {
         console.error('Error fetching courts:', error)
-        setCourts([])
+        const { mockCourts } = await import('@/data/mockCourts')
+        setCourts(mockCourts)
       }
     }
 
@@ -154,17 +153,32 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts }: 
             Curated for <span className="italic text-[#C41E2A]">you</span>
           </h2>
         </div>
-        <a
-          href="#results-section"
-          className="inline-flex items-center gap-2 uppercase font-medium tracking-[0.06em] transition-opacity hover:opacity-80"
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: '13px',
-            color: '#C41E2A',
-          }}
-        >
-          View all courts →
-        </a>
+        {onViewAll ? (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="inline-flex items-center gap-2 uppercase font-medium tracking-[0.06em] transition-opacity hover:opacity-80 bg-transparent border-none cursor-pointer p-0"
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#C41E2A',
+            }}
+          >
+            View all courts →
+          </button>
+        ) : (
+          <a
+            href="#results-section"
+            className="inline-flex items-center gap-2 uppercase font-medium tracking-[0.06em] transition-opacity hover:opacity-80"
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#C41E2A',
+            }}
+          >
+            View all courts →
+          </a>
+        )}
       </div>
       <div className="featured-courts-cards flex flex-wrap gap-7" style={{ gap: '28px' }}>
         {featuredCourts.map((court, i) => (

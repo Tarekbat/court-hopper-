@@ -6,7 +6,8 @@ const COLUMNS = [
   {
     title: 'Product',
     links: [
-      { label: 'Courts', href: '/bookings' },
+      { label: 'Browse courts', href: '/#results-section' },
+      { label: 'My bookings', href: '/bookings' },
       { label: 'Community', href: '/groups' },
       { label: 'Pricing', href: '#' },
       { label: 'Mobile App', href: '#' },
@@ -127,7 +128,7 @@ export default function Footer() {
             color: 'rgba(255,255,255,0.25)',
           }}
         >
-          Seattle, WA
+          Miami, FL
         </span>
       </div>
     </footer>

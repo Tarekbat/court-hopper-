@@ -227,7 +227,7 @@ export default function BookingsPage() {
               description="You haven't made any court reservations yet."
               action={
                 <Link
-                  href="/"
+                  href="/#results-section"
                   className="btn-premium inline-block px-6 py-3 text-white rounded-xl font-semibold text-sm"
                 >
                   Browse courts

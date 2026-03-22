@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { UserPlus, Users, MapPin, X } from '@/components/Icons'
@@ -288,25 +289,30 @@ export default function FindPlayersPage() {
                       key={p.id}
                       className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6 flex flex-wrap items-center justify-between gap-4"
                     >
-                      <div className="flex items-center gap-4">
+                      <Link
+                        href={`/players/${encodeURIComponent(p.user_id)}`}
+                        className="flex items-center gap-4 min-w-0 flex-1 rounded-xl -m-2 p-2 hover:bg-beige/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+                        aria-label={`View profile of ${p.name || 'player'}`}
+                      >
                         {p.image ? (
-                          <img src={p.image} alt="" className="w-14 h-14 rounded-full object-cover border border-stone-soft" />
+                          <img src={p.image} alt="" className="w-14 h-14 rounded-full object-cover border border-stone-soft shrink-0" />
                         ) : (
-                          <div className="w-14 h-14 rounded-full bg-terracotta flex items-center justify-center text-white text-xl font-semibold">
+                          <div className="w-14 h-14 rounded-full bg-terracotta flex items-center justify-center text-white text-xl font-semibold shrink-0">
                             {(p.name || '?').charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <div>
+                        <div className="min-w-0 text-left">
                           <p className="font-display text-lg text-ink">{p.name || 'Player'}</p>
-                          <p className="text-stone text-sm flex items-center gap-1.5 mt-0.5">
+                          <p className="text-stone text-sm flex flex-wrap items-center gap-1.5 mt-0.5">
                             <span>{p.sport?.icon} {p.sport?.name}</span>
                             {p.skill_level != null && (
                               <span className="px-2 py-0.5 bg-stone-soft/80 rounded text-xs">Level {p.skill_level}</span>
                             )}
                           </p>
                           {p.notes && <p className="text-stone text-sm mt-1 line-clamp-2">{p.notes}</p>}
+                          <span className="text-terracotta text-xs font-semibold mt-2 inline-block">View profile →</span>
                         </div>
-                      </div>
+                      </Link>
                       <button
                         type="button"
                         onClick={() => openRequestModal(p.user_id, p.sport_id)}

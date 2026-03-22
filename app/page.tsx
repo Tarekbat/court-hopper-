@@ -56,6 +56,16 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Deep link from nav/footer: /#results-section
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hash !== '#results-section') return
+    const t = window.setTimeout(() => {
+      document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+    return () => window.clearTimeout(t)
+  }, [])
+
   const fetchHeroImage = async () => {
     try {
       const response = await fetch('/api/settings')
@@ -151,12 +161,6 @@ export default function Home() {
   useEffect(() => {
     console.log('Search query changed:', searchQuery)
     fetchCourts()
-    // Scroll to results if there's a search query
-    if (searchQuery.trim()) {
-      setTimeout(() => {
-        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, filters])
 
@@ -262,7 +266,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-[2] w-full max-w-[900px]">
-          {/* Now Live in Seattle badge */}
+          {/* Now Live in Miami badge */}
           <div
             className="hero-anim-fade-up hero-delay-1 inline-flex items-center gap-2.5 rounded-[100px] py-2 pl-3 pr-[18px] mb-10"
             style={{ background: 'rgba(196,30,42,0.06)' }}
@@ -275,7 +279,7 @@ export default function Home() {
               className="text-xs font-medium uppercase tracking-[0.1em] text-[#C41E2A]"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Now Live in Seattle
+              Now Live in Miami
             </span>
           </div>
 
@@ -309,8 +313,10 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   setShowFilters(true)
+                  setViewMode('list')
+                  setShowAvailableNow(false)
                   setTimeout(() => {
-                    document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
+                    document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   }, 100)
                 }}
                 className="btn-premium inline-flex items-center justify-center px-10 py-4 text-sm font-medium"
@@ -326,7 +332,14 @@ export default function Home() {
               </button>
             </div>
             <div className="w-full sm:max-w-md">
-              <SearchBar onSearch={setSearchQuery} />
+              <SearchBar
+                onSearch={setSearchQuery}
+                onCommit={() => {
+                  setTimeout(() => {
+                    document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 100)
+                }}
+              />
             </div>
           </div>
 
@@ -522,7 +535,16 @@ export default function Home() {
               {/* Featured Courts - Show when list mode and no search/filters */}
               {!searchQuery.trim() && !showFilters && (
                 <div className="mb-12 fade-in-up">
-                  <FeaturedCourts />
+                  <FeaturedCourts
+                    onViewAll={() => {
+                      setShowFilters(true)
+                      setViewMode('list')
+                      setShowAvailableNow(false)
+                      setTimeout(() => {
+                        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }, 100)
+                    }}
+                  />
                 </div>
               )}
             </>

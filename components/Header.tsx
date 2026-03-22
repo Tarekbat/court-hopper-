@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase-client'
 import { X } from '@/components/Icons'
 
@@ -20,6 +20,16 @@ export default function Header() {
   const [mounted, setMounted] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+
+  /** Smooth scroll to courts on home; full navigation when coming from another route. */
+  const handleBrowseCourtsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === '/') {
+      e.preventDefault()
+      window.history.replaceState(null, '', '#results-section')
+      document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -107,17 +117,25 @@ export default function Header() {
               </div>
             ) : session ? (
               <>
+                <Link
+                  href="/#results-section"
+                  onClick={handleBrowseCourtsClick}
+                  className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Browse courts
+                </Link>
                 <Link href="/find-players" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  Discover
+                  Find players
                 </Link>
                 <Link href="/bookings" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  Courts
+                  My bookings
                 </Link>
                 <Link href="/groups" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   Community
                 </Link>
                 <Link href="/tournaments" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  For Business
+                  Tournaments
                 </Link>
                 <div className="w-px h-5 bg-[#E8E0D8] shrink-0" style={{ height: '20px' }} aria-hidden />
                 <div className="flex items-center gap-3 shrink-0" style={{ gap: '12px' }}>
@@ -273,17 +291,28 @@ export default function Header() {
             </div>
             <nav className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto py-6">
               <div className="flex flex-col" style={{ gap: '28px' }}>
+                <Link
+                  href="/#results-section"
+                  className={mobileNavLinkClass}
+                  style={mobileNavLinkStyle}
+                  onClick={(e) => {
+                    handleBrowseCourtsClick(e)
+                    closeMobile()
+                  }}
+                >
+                  Browse courts
+                </Link>
                 <Link href="/find-players" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
-                  Discover
+                  Find players
                 </Link>
                 <Link href="/bookings" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
-                  Courts
+                  My bookings
                 </Link>
                 <Link href="/groups" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
                   Community
                 </Link>
                 <Link href="/tournaments" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
-                  For Business
+                  Tournaments
                 </Link>
               </div>
               <div className="my-6 h-px bg-[#E8E0D8]" aria-hidden />

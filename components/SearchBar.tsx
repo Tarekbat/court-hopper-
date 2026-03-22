@@ -1,13 +1,15 @@
 'use client'
 
 import { Search } from '@/components/Icons'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface SearchBarProps {
   onSearch: (query: string) => void
+  /** Fires on Enter after search updates; use for scroll-to-results without jumping while typing. */
+  onCommit?: () => void
 }
 
-export default function SearchBar({ onSearch }: SearchBarProps) {
+export default function SearchBar({ onSearch, onCommit }: SearchBarProps) {
   const [query, setQuery] = useState('')
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
   const onSearchRef = useRef(onSearch)
@@ -26,6 +28,9 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
     }
     // Immediately trigger search on Enter
     onSearchRef.current(query)
+    if (query.trim() !== '') {
+      onCommit?.()
+    }
   }
 
   useEffect(() => {
