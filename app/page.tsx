@@ -134,9 +134,43 @@ export default function Home() {
           surface: court.surface,
           rating: court.rating || 0,
           reviewCount: court.review_count || court.reviewCount || 0,
-          amenities: typeof court.amenities === 'string' ? JSON.parse(court.amenities) : (court.amenities || []),
-          images: typeof court.images === 'string' ? JSON.parse(court.images) : (court.images || []),
-          availableDays: typeof court.available_days === 'string' ? JSON.parse(court.available_days) : (typeof court.availableDays === 'string' ? JSON.parse(court.availableDays) : (court.available_days || court.availableDays || [])),
+          amenities: (() => {
+            try {
+              if (typeof court.amenities === 'string') {
+                const parsed = JSON.parse(court.amenities)
+                return Array.isArray(parsed) ? parsed : []
+              }
+              return Array.isArray(court.amenities) ? court.amenities : []
+            } catch {
+              return []
+            }
+          })(),
+          images: (() => {
+            try {
+              if (typeof court.images === 'string') {
+                const parsed = JSON.parse(court.images)
+                return Array.isArray(parsed) ? parsed : []
+              }
+              return Array.isArray(court.images) ? court.images : []
+            } catch {
+              return []
+            }
+          })(),
+          availableDays: (() => {
+            try {
+              const raw =
+                typeof court.available_days !== 'undefined'
+                  ? court.available_days
+                  : court.availableDays
+              if (typeof raw === 'string') {
+                const parsed = JSON.parse(raw)
+                return Array.isArray(parsed) ? parsed : []
+              }
+              return Array.isArray(raw) ? raw : []
+            } catch {
+              return []
+            }
+          })(),
           totalCourts: totalCourts,
           courtNumbers: Array.from({ length: totalCourts }, (_, i) => `Court ${i + 1}`),
           timeSlots: {}, // Will be fetched per court when needed
@@ -165,46 +199,18 @@ export default function Home() {
   }, [searchQuery, filters])
 
   const filteredCourts = useMemo(() => {
+    // Temporary no-filter mode: always show all available courts.
+    // Keep simple name/address/city search only.
     return courts.filter((court) => {
-      // Search filter
-      const matchesSearch =
-        searchQuery === '' ||
-        court.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        court.location.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        court.location.city.toLowerCase().includes(searchQuery.toLowerCase())
-
-      // Surface filter
-      const matchesSurface = filters.surface === 'All' || court.surface === filters.surface
-
-      // Price filter
-      const matchesPrice = court.price.peak <= filters.maxPrice
-
-      // Rating filter
-      const matchesRating = court.rating >= filters.minRating
-
-      // Distance filter - only apply if court has valid distance (> 0)
-      // Courts with distance 0 (invalid coordinates) should still be shown
-      const matchesDistance = court.distance === 0 || court.distance <= filters.maxDistance
-
-      // Amenities filter
-      const matchesAmenities =
-        filters.amenities.length === 0 ||
-        filters.amenities.every((amenity) => court.amenities.includes(amenity))
-
-      // Available Now filter - simplified for now
-      const matchesAvailableNow = !showAvailableNow || true
-
+      if (!searchQuery.trim()) return true
+      const q = searchQuery.toLowerCase()
       return (
-        matchesSearch &&
-        matchesSurface &&
-        matchesPrice &&
-        matchesRating &&
-        matchesDistance &&
-        matchesAmenities &&
-        matchesAvailableNow
+        court.name.toLowerCase().includes(q) ||
+        court.location.address.toLowerCase().includes(q) ||
+        court.location.city.toLowerCase().includes(q)
       )
     })
-  }, [courts, searchQuery, filters, showAvailableNow])
+  }, [courts, searchQuery])
 
   // Add scroll animations - re-run when view mode or results change so list shows after switching from map
   useEffect(() => {
@@ -312,7 +318,6 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => {
-                  setShowFilters(true)
                   setViewMode('list')
                   setShowAvailableNow(false)
                   setTimeout(() => {
@@ -367,7 +372,6 @@ export default function Home() {
             <QuickActions
               onMapViewClick={() => {
                 setShowAvailableNow(false)
-                setShowFilters(true)
                 setViewMode('map')
                 setTimeout(() => {
                   document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -376,7 +380,6 @@ export default function Home() {
               onAvailableNowClick={() => {
                 setSearchQuery('')
                 setShowAvailableNow(true)
-                setShowFilters(true)
                 setViewMode('list')
                 setFilters({ ...filters, maxDistance: 25 })
                 setTimeout(() => {
@@ -386,7 +389,6 @@ export default function Home() {
               onTopRatedClick={() => {
                 setSearchQuery('')
                 setShowAvailableNow(false)
-                setShowFilters(true)
                 setFilters({ ...filters, minRating: 4.5 })
                 setTimeout(() => {
                   document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -406,15 +408,9 @@ export default function Home() {
           <LoggedInDashboard />
         </div>
 
-        {/* Filters Toggle */}
+        {/* View toggle */}
         <div className="mb-10 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-5 py-2.5 bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige transition-all text-sm font-medium text-ink"
-            >
-              {showFilters ? 'Hide' : 'Show'} filters
-            </button>
             {showAvailableNow && (
               <div className="flex items-center gap-2 px-4 py-2 bg-accent-green/10 border border-accent-green/25 rounded-xl">
                 <span className="text-sm font-medium text-accent-green">Available today</span>
@@ -465,13 +461,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="mb-8 relative z-0">
-            <FilterBar onFilterChange={setFilters} />
-          </div>
-        )}
-
         {/* Results Section */}
         <div id="results-section" className="relative z-0">
           {loading ? (
@@ -498,53 +487,32 @@ export default function Home() {
             </>
           ) : (
             <>
-              {/* List View - Show when list mode and has search/filters */}
-              {(searchQuery.trim() || showFilters) && (
-                <>
-                  <div className="mb-10 fade-in-up">
-                    <h2 className="text-3xl md:text-4xl font-display text-ink mb-1">
-                      {filteredCourts.length} {filteredCourts.length === 1 ? 'court' : 'courts'} found
-                      {searchQuery.trim() && (
-                        <span className="text-xl font-sans font-normal text-stone ml-2">
-                          for &quot;{searchQuery}&quot;
-                        </span>
-                      )}
-                    </h2>
-                    <p className="text-stone text-base">Refine with filters below</p>
-                  </div>
-
-                  {/* Court Grid */}
-                  {filteredCourts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                      {filteredCourts.map((court, index) => (
-                        <div key={court.id} className="fade-in-up" style={{ transitionDelay: `${index * 50}ms` }}>
-                          <CourtCard court={court} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-20 mb-12 bg-white border border-stone-soft rounded-2xl shadow-sm fade-in-up">
-                      <div className="text-6xl mb-5">🎾</div>
-                      <p className="text-ink text-xl font-display mb-2">No courts found</p>
-                      <p className="text-stone text-sm">Try adjusting your filters or search.</p>
-                    </div>
+              <div className="mb-10 fade-in-up">
+                <h2 className="text-3xl md:text-4xl font-display text-ink mb-1">
+                  {filteredCourts.length} {filteredCourts.length === 1 ? 'court' : 'courts'} found
+                  {searchQuery.trim() && (
+                    <span className="text-xl font-sans font-normal text-stone ml-2">
+                      for &quot;{searchQuery}&quot;
+                    </span>
                   )}
-                </>
-              )}
+                </h2>
+                <p className="text-stone text-base">All available courts</p>
+              </div>
 
-              {/* Featured Courts - Show when list mode and no search/filters */}
-              {!searchQuery.trim() && !showFilters && (
-                <div className="mb-12 fade-in-up">
-                  <FeaturedCourts
-                    onViewAll={() => {
-                      setShowFilters(true)
-                      setViewMode('list')
-                      setShowAvailableNow(false)
-                      setTimeout(() => {
-                        document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                      }, 100)
-                    }}
-                  />
+              {/* Court Grid */}
+              {filteredCourts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                  {filteredCourts.map((court, index) => (
+                    <div key={court.id} className="fade-in-up" style={{ transitionDelay: `${index * 50}ms` }}>
+                      <CourtCard court={court} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 mb-12 bg-white border border-stone-soft rounded-2xl shadow-sm fade-in-up">
+                  <div className="text-6xl mb-5">🎾</div>
+                  <p className="text-ink text-xl font-display mb-2">No courts found</p>
+                  <p className="text-stone text-sm">Try another search term.</p>
                 </div>
               )}
             </>

@@ -3,6 +3,7 @@ import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-se
 import { z } from 'zod'
 import { addHours, parse, format } from 'date-fns'
 import { randomUUID } from 'crypto'
+import { requireAuth } from '@/lib/api-auth'
 
 const createBookingSchema = z.object({
   courtId: z.string(),
@@ -22,26 +23,16 @@ const createBookingSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const response = NextResponse.next()
-    const supabase = createServerSupabaseClient(request, response)
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession()
-    
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-    }
-    
-    if (!session) {
-      console.error('No session found. Cookies:', request.cookies.getAll().map((c: { name: string; value: string }) => c.name))
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    const auth = await requireAuth(request, { requireVerifiedEmail: true })
+    if (auth instanceof NextResponse) return auth
+    const { supabase, session } = auth
     const user = session.user
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'confirmed'
     const upcoming = searchParams.get('upcoming') === 'true'
+    const limitParam = searchParams.get('limit')
+    const cursor = searchParams.get('cursor') // ISO date string for pagination
+    const limit = Math.min(Math.max(Number(limitParam || 50), 1), 100)
 
     // Optimize: Only select needed fields from bookings and courts
     // This reduces data transfer and improves query performance
@@ -75,14 +66,19 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
+    // Cursor pagination:
+    // - upcoming=true: cursor is last booking_date from previous page, fetch > cursor in ascending
+    // - upcoming=false: cursor is last booking_date from previous page, fetch < cursor in descending
     if (upcoming) {
       query = query.gte('booking_date', new Date().toISOString())
         .order('booking_date', { ascending: true })
+      if (cursor) query = query.gt('booking_date', cursor)
     } else {
       query = query.order('booking_date', { ascending: false })
+      if (cursor) query = query.lt('booking_date', cursor)
     }
 
-    const { data: bookings, error } = await query
+    const { data: bookings, error } = await query.limit(limit)
 
     if (error) {
       console.error('Error fetching bookings:', error)
@@ -115,13 +111,16 @@ export async function GET(request: NextRequest) {
       } : null,
     }))
 
-    // Return response with any cookie updates
-    const jsonResponse = NextResponse.json(transformedBookings)
-    // Copy any cookie updates from the supabase client response
-    response.cookies.getAll().forEach((cookie: { name: string; value: string }) => {
-      jsonResponse.cookies.set(cookie.name, cookie.value, cookie)
+    const nextCursor =
+      transformedBookings.length > 0
+        ? transformedBookings[transformedBookings.length - 1]!.bookingDate
+        : null
+
+    return NextResponse.json({
+      items: transformedBookings,
+      nextCursor,
+      limit,
     })
-    return jsonResponse
   } catch (error) {
     console.error('Error fetching bookings:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -152,6 +151,79 @@ export async function POST(request: NextRequest) {
 
     if (courtError || !court) {
       return NextResponse.json({ error: 'Court not found' }, { status: 404 })
+    }
+
+    // Production-grade server-side availability validation:
+    // - court must be active
+    // - booking date must be an open day (if configured)
+    // - booking time must fit within operating hours (if configured)
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const parseHourFromHHMM = (time: string) => {
+      const [hh] = time.split(':')
+      const n = parseInt(hh, 10)
+      return Number.isFinite(n) ? n : null
+    }
+
+    const bookingDateObjForHours = new Date(validatedData.bookingDate)
+    const normalizedBookingDateForHours = new Date(
+      Date.UTC(
+        bookingDateObjForHours.getUTCFullYear(),
+        bookingDateObjForHours.getUTCMonth(),
+        bookingDateObjForHours.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    )
+    const bookingDayName = dayNames[normalizedBookingDateForHours.getUTCDay()]!
+
+    if (court.status && court.status !== 'active') {
+      return NextResponse.json({ error: 'Court is not available' }, { status: 409 })
+    }
+
+    const configuredAvailableDays: unknown = court.available_days ?? []
+    const openDays = Array.isArray(configuredAvailableDays) ? configuredAvailableDays : []
+    // If the admin didn't configure open days (empty array), treat it as open all days.
+    if (openDays.length > 0 && !openDays.includes(bookingDayName)) {
+      return NextResponse.json({ error: 'Court is not available on this day' }, { status: 409 })
+    }
+
+    const getCourtHoursForDay = (courtRow: any, dayName: string) => {
+      let openStartHour = 7
+      let closeStartHour = 21
+
+      if (courtRow?.hours_24_7) return { openStartHour, closeStartHour }
+
+      const hoursByDay = courtRow?.hours_by_day ?? courtRow?.hoursByDay
+      const cfg = hoursByDay && typeof hoursByDay === 'object' ? hoursByDay[dayName] : null
+      const open = parseHourFromHHMM(cfg?.open ?? cfg?.start ?? '07:00')
+      const close = parseHourFromHHMM(cfg?.close ?? cfg?.end ?? '21:00')
+
+      if (typeof open === 'number' && typeof close === 'number') {
+        openStartHour = Math.max(0, Math.min(21, open))
+        closeStartHour = Math.max(0, Math.min(21, close))
+        if (closeStartHour < openStartHour) closeStartHour = openStartHour
+      }
+
+      return { openStartHour, closeStartHour }
+    }
+
+    const startHour = parseHourFromHHMM(validatedData.startTime)
+    if (startHour === null) {
+      return NextResponse.json({ error: 'Invalid startTime' }, { status: 400 })
+    }
+
+    const { openStartHour, closeStartHour } = getCourtHoursForDay(court, bookingDayName)
+
+    if (startHour < openStartHour || startHour > closeStartHour) {
+      return NextResponse.json({ error: 'Court is not available at this time' }, { status: 409 })
+    }
+
+    // In this system, `close` is the last available 1-hour start time (existing 7-21 semantics).
+    // A booking ending right after `close` is allowed, but bookings that extend past `close + 1` are not.
+    if (startHour + validatedData.duration > closeStartHour + 1) {
+      return NextResponse.json({ error: 'Court operating hours do not support this duration' }, { status: 409 })
     }
 
     // Check availability
@@ -209,10 +281,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calculate price
+    // Calculate price based on court cost model
+    const costType = (court.cost_type as string | undefined) ?? 'pay_per_hour'
     const hour = parseInt(startTime.split(':')[0])
     const isPeakTime = (hour >= 17 && hour < 20) || hour === 12
-    const pricePerHour = isPeakTime ? court.peak_price : court.off_peak_price
+    const pricePerHour =
+      costType === 'free' || costType === 'membership_required'
+        ? 0
+        : isPeakTime
+          ? court.peak_price
+          : court.off_peak_price
     const totalPrice = pricePerHour * validatedData.duration
 
     // Generate unique ID for booking

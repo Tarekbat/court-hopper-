@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-server'
 import { format, parse, addHours } from 'date-fns'
 
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
+
+function getDayNameFromDateStr(dateStr: string) {
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  return daysOfWeek[d.getUTCDay()]!
+}
+
+function parseHourFromHHMM(time: unknown): number | null {
+  if (typeof time !== 'string') return null
+  const [hh] = time.split(':')
+  const n = parseInt(hh, 10)
+  return Number.isFinite(n) ? n : null
+}
+
+function getCourtHoursForDay(court: any, _dayName: string) {
+  // Default matches existing app behavior.
+  let openStartHour = 7
+  let closeStartHour = 21
+
+  if (court?.hours_24_7) {
+    return { openStartHour, closeStartHour }
+  }
+
+  const hoursByDay = court?.hours_by_day ?? court?.hoursByDay
+  const dayName = _dayName
+  const cfg = hoursByDay && typeof hoursByDay === 'object' ? hoursByDay[dayName] : null
+  const open = parseHourFromHHMM(cfg?.open ?? cfg?.start ?? null)
+  const close = parseHourFromHHMM(cfg?.close ?? cfg?.end ?? null)
+
+  if (typeof open === 'number' && typeof close === 'number' && Number.isFinite(open) && Number.isFinite(close)) {
+    openStartHour = Math.max(0, Math.min(21, open))
+    closeStartHour = Math.max(0, Math.min(21, close))
+    if (closeStartHour < openStartHour) closeStartHour = openStartHour
+  }
+
+  return { openStartHour, closeStartHour }
+}
+
 /**
  * Batch availability for a single court across multiple dates.
  * GET /api/courts/[id]/availability?dates=2024-01-01,2024-01-02,...
@@ -32,7 +70,7 @@ export async function GET(
 
     const { data: court, error: courtError } = await adminSupabase
       .from('courts')
-      .select('id, total_courts')
+      .select('id, total_courts, status, available_days, hours_24_7, hours_by_day')
       .eq('id', courtId)
       .single()
 
@@ -70,7 +108,15 @@ export async function GET(
       const dayBookings = bookingsByDate.get(dateStr) ?? []
       const timeSlots: { time: string; availableCourts: { number: string; isAvailable: boolean }[] }[] = []
 
-      for (let hour = 7; hour <= 21; hour++) {
+      const dayName = getDayNameFromDateStr(dateStr)
+      const availableDays: unknown = court.available_days ?? []
+      const isDayOpen = Array.isArray(availableDays) && availableDays.includes(dayName)
+      const isCourtActive = !court.status || court.status === 'active'
+      const shouldShowAvailability = isCourtActive && isDayOpen
+
+      const { openStartHour, closeStartHour } = getCourtHoursForDay(court, dayName)
+
+      for (let hour = openStartHour; hour <= closeStartHour; hour++) {
         const time = `${hour.toString().padStart(2, '0')}:00`
         const endTime = format(addHours(parse(time, 'HH:mm', new Date()), 1), 'HH:mm')
 
@@ -92,7 +138,7 @@ export async function GET(
           const courtNumber = `Court ${i + 1}`
           return {
             number: courtNumber,
-            isAvailable: !bookedCourts.includes(courtNumber),
+            isAvailable: shouldShowAvailability && !bookedCourts.includes(courtNumber),
           }
         })
 

@@ -94,6 +94,17 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 20px;
   margin: 0 auto 32px;
 }
+
+/* Fixed header overlap: push internal page title/buttons below the sticky header on mobile */
+@media (max-width: 768px) {
+  .internal-page-header {
+    margin: 84px auto 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+}
 .internal-page-title {
   font-family: 'Playfair Display', serif;
   font-size: 32px;

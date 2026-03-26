@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase-server'
 import { format, parse, addHours } from 'date-fns'
+import { z } from 'zod'
 
 // Haversine formula to calculate distance between two coordinates in miles
 function calculateDistance(
@@ -54,6 +55,7 @@ export async function GET(
       `
       )
       .eq('id', params.id)
+      .eq('status', 'active')
       .single()
 
     if (courtError || !court) {
@@ -213,6 +215,32 @@ export async function GET(
       return null
     }).filter((img: any) => img !== null && img !== undefined)
 
+    const [whoPlaysHere, upcomingPlayDays] = await Promise.all([
+      supabase
+        .from('play_partner_profiles')
+        .select('user_id, users ( id, name, image )')
+        .eq('is_active', true)
+        .limit(100),
+      supabase
+        .from('group_events')
+        .select('id, title, starts_at, group_id, location_label')
+        .ilike('location_label', `%${court.name}%`)
+        .gte('starts_at', new Date().toISOString())
+        .order('starts_at', { ascending: true })
+        .limit(10),
+    ])
+
+    const players = (whoPlaysHere.data ?? [])
+      .filter((r: any) =>
+        JSON.stringify(r).toLowerCase().includes(String(court.name).toLowerCase())
+      )
+      .slice(0, 12)
+      .map((r: any) => ({
+        id: r.users?.id ?? r.user_id,
+        name: r.users?.name ?? 'Player',
+        image: r.users?.image ?? null,
+      }))
+
     // Transform court data to match expected format
     // Serialize Date objects to ISO strings to avoid Next.js serialization warnings
     const transformedCourt = {
@@ -233,6 +261,14 @@ export async function GET(
         created_at: review.created_at ? new Date(review.created_at).toISOString() : null,
         updated_at: review.updated_at ? new Date(review.updated_at).toISOString() : null,
       })) : [],
+      upcoming_play_days: (upcomingPlayDays.data ?? []).map((e: any) => ({
+        id: e.id,
+        title: e.title,
+        starts_at: e.starts_at,
+        group_id: e.group_id,
+        location_label: e.location_label,
+      })),
+      who_plays_here: players,
     }
 
     return NextResponse.json(transformedCourt)
@@ -240,4 +276,29 @@ export async function GET(
     console.error('Error fetching court:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+const reviewSchema = z.object({
+  rating: z.number().min(1).max(5),
+  comment: z.string().min(2).max(500),
+})
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createServerSupabaseClient(request)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const parsed = reviewSchema.safeParse(await request.json())
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
+
+  const { error } = await supabase.from('reviews').upsert({
+    court_id: params.id,
+    user_id: session.user.id,
+    rating: parsed.data.rating,
+    comment: parsed.data.comment.trim(),
+  })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

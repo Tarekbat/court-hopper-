@@ -10,6 +10,8 @@ export default function SignUpPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [ageConfirmed, setAgeConfirmed] = useState(false)
+  const [acceptedLegal, setAcceptedLegal] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -22,7 +24,14 @@ export default function SignUpPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          age_confirmed_13_plus: ageConfirmed,
+          accepted_terms: acceptedLegal,
+          accepted_privacy: acceptedLegal,
+        }),
       })
 
       const data = await response.json()
@@ -120,7 +129,7 @@ export default function SignUpPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !ageConfirmed || !acceptedLegal}
               className="w-full bg-clay-gradient text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transition-all disabled:bg-gray-400 disabled:cursor-not-allowed disabled:shadow-none mt-8"
             >
               {loading ? (
@@ -132,6 +141,27 @@ export default function SignUpPage() {
                 'Sign Up'
               )}
             </button>
+            <label className="flex items-start gap-2 text-xs text-clay-rust-dark/80">
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={(e) => setAgeConfirmed(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>I confirm I am 13 years old or older.</span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-clay-rust-dark/80">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(e) => setAcceptedLegal(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                I agree to the <Link href="/terms" className="underline">Terms of Service</Link> and{' '}
+                <Link href="/privacy" className="underline">Privacy Policy</Link>.
+              </span>
+            </label>
           </form>
 
           <div className="mt-8 text-center">

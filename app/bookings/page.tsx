@@ -37,6 +37,15 @@ interface Booking {
 
 type FilterType = 'all' | 'upcoming' | 'past'
 
+/** GET /api/bookings returns { items, nextCursor, limit }; older clients may expect a raw array. */
+function bookingsFromApiPayload(data: unknown): Booking[] {
+  if (Array.isArray(data)) return data as Booking[]
+  if (data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)) {
+    return (data as { items: Booking[] }).items
+  }
+  return []
+}
+
 export default function BookingsPage() {
   const router = useRouter()
   const [session, setSession] = useState<any>(null)
@@ -64,7 +73,7 @@ export default function BookingsPage() {
           throw new Error('Failed to fetch bookings')
         }
         const data = await response.json()
-        setAllBookings(data)
+        setAllBookings(bookingsFromApiPayload(data))
       } catch (err) {
         setError('Failed to load bookings')
         console.error(err)
@@ -116,7 +125,7 @@ export default function BookingsPage() {
         throw new Error('Failed to fetch bookings')
       }
       const data = await response.json()
-      setAllBookings(data)
+      setAllBookings(bookingsFromApiPayload(data))
     } catch (err) {
       setError('Failed to load bookings')
       console.error(err)
@@ -207,7 +216,7 @@ export default function BookingsPage() {
       <div className="min-h-screen bg-beige">
         <Header />
 
-        <main className="max-w-7xl mx-auto px-5 py-10 md:py-12">
+        <main className="max-w-7xl mx-auto px-5 pt-24 pb-10 md:pt-28 md:pb-12">
           {loading ? (
             <LoadingSkeleton count={3} variant="card" />
           ) : error ? (

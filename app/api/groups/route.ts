@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { z } from 'zod'
+import { hasProfanity } from '@/lib/moderation'
 
 const createGroupSchema = z.object({
   name: z.string().min(2).max(100),
@@ -185,6 +186,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, description, sport_id, city, region, is_public } = parsed.data
+    if (hasProfanity(name) || (description && hasProfanity(description))) {
+      return NextResponse.json({ error: 'Please remove inappropriate language.' }, { status: 400 })
+    }
     const userId = session.user.id
 
     const { data: group, error: groupError } = await supabase

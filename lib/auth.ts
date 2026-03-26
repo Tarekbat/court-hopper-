@@ -1,5 +1,5 @@
 import { createServerSupabaseClient, createAdminClient } from './supabase-server'
-import { cookies } from 'next/headers'
+import type { NextRequest, NextResponse } from 'next/server'
 
 // Get the current user session
 export async function getServerSession() {
@@ -23,8 +23,14 @@ export async function getCurrentUser() {
 }
 
 // Sign up a new user
-export async function signUp(email: string, password: string, name?: string) {
-  const supabase = createServerSupabaseClient()
+export async function signUp(
+  email: string,
+  password: string,
+  name?: string,
+  request?: NextRequest,
+  response?: NextResponse
+) {
+  const supabase = createServerSupabaseClient(request, response)
   
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -54,8 +60,8 @@ export async function signUp(email: string, password: string, name?: string) {
 }
 
 // Sign in a user
-export async function signIn(email: string, password: string) {
-  const supabase = createServerSupabaseClient()
+export async function signIn(email: string, password: string, request?: NextRequest, response?: NextResponse) {
+  const supabase = createServerSupabaseClient(request, response)
   
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -67,8 +73,8 @@ export async function signIn(email: string, password: string) {
 }
 
 // Sign out the current user
-export async function signOut() {
-  const supabase = createServerSupabaseClient()
+export async function signOut(request?: NextRequest, response?: NextResponse) {
+  const supabase = createServerSupabaseClient(request, response)
   const { error } = await supabase.auth.signOut()
   if (error) throw error
 }

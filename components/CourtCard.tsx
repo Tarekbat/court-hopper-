@@ -8,15 +8,21 @@ import { useMemo } from 'react'
 interface CourtCardProps {
   court: Court
   variant?: 'default' | 'featured'
+  /**
+   * When set (from /api/courts/availability includeSlotCounts), used for the featured badge.
+   * Listing APIs omit per-day timeSlots, so without this the badge would always read 0.
+   */
+  slotsTodayOverride?: number
 }
 
-export default function CourtCard({ court, variant = 'default' }: CourtCardProps) {
+export default function CourtCard({ court, variant = 'default', slotsTodayOverride }: CourtCardProps) {
   const todayName = useMemo(() => new Date().toLocaleDateString('en-US', { weekday: 'long' }), [])
   const slotsTodayCount = useMemo(() => {
+    if (typeof slotsTodayOverride === 'number') return slotsTodayOverride
     const daySlots = court.timeSlots?.[todayName]
     if (!daySlots || !Array.isArray(daySlots)) return 0
     return daySlots.filter((s) => s.availableCourts?.some((c) => c.isAvailable)).length
-  }, [court.timeSlots, todayName])
+  }, [court.timeSlots, todayName, slotsTodayOverride])
   // Ensure images is always an array and validate URLs
   const images = useMemo(() => {
     let imgArray: string[] = []
@@ -65,13 +71,18 @@ export default function CourtCard({ court, variant = 'default' }: CourtCardProps
     'Security': Shield,
   }
 
-  const getAmenityIcon = (amenity: string) => {
+  const getAmenityIcon = (amenity: unknown) => {
+    if (typeof amenity !== 'string') return null
     const iconKey = Object.keys(amenityIcons).find((key: string) => 
       amenity.toLowerCase().includes(key.toLowerCase()) || 
       key.toLowerCase().includes(amenity.toLowerCase())
     )
     return iconKey ? amenityIcons[iconKey] : null
   }
+
+  const safeAmenities = Array.isArray(court.amenities)
+    ? court.amenities.filter((a) => typeof a === 'string' && a.trim().length > 0)
+    : []
 
   if (variant === 'featured') {
     return (
@@ -228,7 +239,7 @@ export default function CourtCard({ court, variant = 'default' }: CourtCardProps
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {court.amenities.slice(0, 3).map((amenity, idx) => {
+            {safeAmenities.slice(0, 3).map((amenity, idx) => {
               const IconComponent = getAmenityIcon(amenity)
               return (
                 <span
@@ -240,9 +251,9 @@ export default function CourtCard({ court, variant = 'default' }: CourtCardProps
                 </span>
               )
             })}
-            {court.amenities.length > 3 && (
+            {safeAmenities.length > 3 && (
               <span className="flex items-center gap-1.5 px-2.5 py-1 bg-terracotta/10 text-terracotta text-xs font-medium rounded-lg border border-terracotta/20">
-                +{court.amenities.length - 3} more
+                +{safeAmenities.length - 3} more
               </span>
             )}
           </div>

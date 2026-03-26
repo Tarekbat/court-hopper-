@@ -6,6 +6,7 @@ const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   scheduled_at: z.string().datetime(),
   location: z.string().max(200).optional(),
+  max_capacity: z.number().int().positive().max(500).optional().nullable(),
 })
 
 export async function GET(
@@ -23,7 +24,7 @@ export async function GET(
 
     const { data: events, error } = await supabase
       .from('group_events')
-      .select('id, title, scheduled_at, location, court_booking_id, created_by, created_at')
+      .select('id, title, scheduled_at, location, max_capacity, court_booking_id, created_by, created_at')
       .eq('group_id', groupId)
       .order('scheduled_at', { ascending: true })
 
@@ -61,7 +62,7 @@ export async function POST(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
     }
 
-    const { title, scheduled_at, location } = parsed.data
+    const { title, scheduled_at, location, max_capacity } = parsed.data
 
     const { data: event, error } = await supabase
       .from('group_events')
@@ -70,9 +71,10 @@ export async function POST(
         title,
         scheduled_at,
         location: location ?? null,
+        max_capacity: max_capacity ?? null,
         created_by: session.user.id,
       })
-      .select('id, title, scheduled_at, location, created_by, created_at')
+      .select('id, title, scheduled_at, location, max_capacity, created_by, created_at')
       .single()
 
     if (error) {

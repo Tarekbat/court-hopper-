@@ -7,11 +7,22 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
 import { ArrowLeft, Users, Calendar, MapPin, Plus, X, Clock } from '@/components/Icons'
 import ErrorState from '@/components/ui/ErrorState'
+import GroupEventRsvp from '@/components/groups/GroupEventRsvp'
+import GroupFeed from '@/components/groups/GroupFeed'
+import PlayerQuickActions from '@/components/social/PlayerQuickActions'
 import { format, parseISO } from 'date-fns'
 
 type Sport = { id: string; slug: string; name: string; icon: string | null }
 type Member = { user_id: string; role: string; joined_at: string; name: string | null; image: string | null; skill_level?: number | null }
-type Event = { id: string; title: string; scheduled_at: string; location: string | null; created_by: string; created_at: string }
+type Event = {
+  id: string
+  title: string
+  scheduled_at: string
+  location: string | null
+  max_capacity: number | null
+  created_by: string
+  created_at: string
+}
 
 type GroupDetail = {
   id: string
@@ -31,6 +42,7 @@ type GroupDetail = {
   is_member: boolean
   is_creator: boolean
   my_role: string | null
+  viewer_id?: string
 }
 
 export default function GroupDetailPage() {
@@ -43,9 +55,13 @@ export default function GroupDetailPage() {
   const [joining, setJoining] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [showEventModal, setShowEventModal] = useState(false)
-  const [eventForm, setEventForm] = useState({ title: '', scheduled_at: '', location: '' })
+  const [eventForm, setEventForm] = useState({ title: '', scheduled_at: '', location: '', max_capacity: '' })
   const [creatingEvent, setCreatingEvent] = useState(false)
   const [eventError, setEventError] = useState('')
+  const [chatOpening, setChatOpening] = useState(false)
+  const [leaderboard, setLeaderboard] = useState<
+    Array<{ user_id: string; name: string | null; image: string | null; completed_matches: number }>
+  >([])
 
   const fetchGroup = async () => {
     try {
@@ -71,6 +87,20 @@ export default function GroupDetailPage() {
 
   useEffect(() => {
     if (id) fetchGroup()
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/groups/${id}/leaderboard`, { credentials: 'include' })
+        if (!res.ok) return
+        const j = await res.json()
+        setLeaderboard(j.leaderboard ?? [])
+      } catch {
+        setLeaderboard([])
+      }
+    })()
   }, [id])
 
   const handleJoin = async () => {
@@ -105,12 +135,36 @@ export default function GroupDetailPage() {
     }
   }
 
+  const openGroupChat = async () => {
+    if (!id) return
+    setChatOpening(true)
+    try {
+      const res = await fetch(`/api/groups/${id}/chat`, { credentials: 'include' })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Could not open chat')
+      router.push(`/messages/${j.thread_id}`)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not open chat')
+    } finally {
+      setChatOpening(false)
+    }
+  }
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault()
     setEventError('')
     if (!eventForm.title.trim() || !eventForm.scheduled_at) {
       setEventError('Title and date/time are required.')
       return
+    }
+    let maxCap: number | null = null
+    if (eventForm.max_capacity.trim() !== '') {
+      const n = Number.parseInt(eventForm.max_capacity.trim(), 10)
+      if (!Number.isFinite(n) || n < 1 || n > 500) {
+        setEventError('Max players must be between 1 and 500, or leave blank for unlimited.')
+        return
+      }
+      maxCap = n
     }
     setCreatingEvent(true)
     try {
@@ -121,14 +175,19 @@ export default function GroupDetailPage() {
           title: eventForm.title.trim(),
           scheduled_at: new Date(eventForm.scheduled_at).toISOString(),
           location: eventForm.location.trim() || undefined,
+          max_capacity: maxCap,
         }),
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error?.message ?? 'Failed to create event')
+        const msg =
+          typeof data.error === 'string'
+            ? data.error
+            : data.error?.message ?? data.error?.formErrors?.join?.(', ') ?? 'Failed to create event'
+        throw new Error(msg)
       }
       setShowEventModal(false)
-      setEventForm({ title: '', scheduled_at: '', location: '' })
+      setEventForm({ title: '', scheduled_at: '', location: '', max_capacity: '' })
       await fetchGroup()
     } catch (err: any) {
       setEventError(err.message ?? 'Failed to create event')
@@ -142,7 +201,7 @@ export default function GroupDetailPage() {
       <ProtectedRoute>
         <div className="min-h-screen bg-beige">
           <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 md:pt-28 md:pb-12">
             <div className="animate-pulse space-y-6">
               <div className="h-8 bg-stone-soft/80 rounded w-48" />
               <div className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6">
@@ -162,7 +221,7 @@ export default function GroupDetailPage() {
       <ProtectedRoute>
         <div className="min-h-screen bg-beige">
           <Header />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 md:pt-28 md:pb-12">
             <ErrorState
               message={error || 'Group not found'}
               onRetry={fetchGroup}
@@ -185,7 +244,7 @@ export default function GroupDetailPage() {
       <div className="min-h-screen bg-beige">
         <Header />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 md:pt-28 md:pb-12">
           <Link
             href="/groups"
             className="inline-flex items-center gap-2 text-stone hover:text-terracotta transition-colors text-sm font-medium mb-6"
@@ -208,13 +267,23 @@ export default function GroupDetailPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {group.is_member && (
+                  <button
+                    type="button"
+                    onClick={openGroupChat}
+                    disabled={chatOpening}
+                    className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-terracotta/40 hover:bg-beige text-sm font-medium disabled:opacity-50 min-h-[44px]"
+                  >
+                    {chatOpening ? 'Opening…' : 'Group chat'}
+                  </button>
+                )}
                 {group.is_member ? (
                   <button
                     type="button"
                     onClick={handleLeave}
                     disabled={leaving || group.is_creator}
-                    className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:border-stone hover:bg-beige text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                   >
                     {leaving ? 'Leaving…' : group.is_creator ? 'Creator' : 'Leave group'}
                   </button>
@@ -280,6 +349,9 @@ export default function GroupDetailPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-ink truncate">{m.name || 'Member'}</p>
                         <p className="text-xs text-stone">{m.role === 'admin' ? 'Admin' : 'Member'}</p>
+                        {group.viewer_id && m.user_id !== group.viewer_id && (
+                          <PlayerQuickActions userId={m.user_id} compact />
+                        )}
                       </div>
                       <div className="text-sm text-stone">
                         {m.skill_level != null ? `Level ${m.skill_level}` : '–'}
@@ -287,6 +359,32 @@ export default function GroupDetailPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6 mt-5">
+                <h3 className="text-sm font-semibold text-stone uppercase tracking-wide mb-3">
+                  Group leaderboard
+                </h3>
+                {leaderboard.length === 0 ? (
+                  <p className="text-sm text-stone">No completed matches yet in this group.</p>
+                ) : (
+                  <ol className="space-y-2">
+                    {leaderboard.slice(0, 5).map((r, idx) => (
+                      <li key={r.user_id} className="flex items-center gap-3">
+                        <span className="w-6 text-sm font-semibold text-stone">{idx + 1}</span>
+                        {r.image ? (
+                          <img src={r.image} alt="" className="w-8 h-8 rounded-full object-cover border border-stone-soft" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-terracotta/15 flex items-center justify-center text-terracotta text-xs font-semibold">
+                            {(r.name || '?').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <p className="text-sm font-medium text-ink flex-1 truncate">{r.name || 'Member'}</p>
+                        <p className="text-xs text-stone">{r.completed_matches} matches</p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
             </div>
 
@@ -313,21 +411,30 @@ export default function GroupDetailPage() {
                 ) : (
                   <ul className="space-y-4">
                     {group.upcoming_events.map((ev) => (
-                      <li key={ev.id} className="flex items-start gap-3 pb-4 border-b border-stone-soft last:border-0 last:pb-0">
-                        <Calendar className="w-5 h-5 text-terracotta flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-ink">{ev.title}</p>
-                          <p className="text-sm text-stone flex items-center gap-1.5 mt-1">
-                            <Clock className="w-4 h-4" />
-                            {format(parseISO(ev.scheduled_at), 'EEE, MMM d, yyyy · h:mm a')}
-                          </p>
-                          {ev.location && (
+                      <li
+                        key={ev.id}
+                        className="pb-4 border-b border-stone-soft last:border-0 last:pb-0 space-y-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-terracotta flex-shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-ink">{ev.title}</p>
                             <p className="text-sm text-stone flex items-center gap-1.5 mt-1">
-                              <MapPin className="w-4 h-4" />
-                              {ev.location}
+                              <Clock className="w-4 h-4 flex-shrink-0" />
+                              {format(parseISO(ev.scheduled_at), 'EEE, MMM d, yyyy · h:mm a')}
                             </p>
-                          )}
+                            {ev.location && (
+                              <p className="text-sm text-stone flex items-center gap-1.5 mt-1">
+                                <MapPin className="w-4 h-4 flex-shrink-0" />
+                                {ev.location}
+                              </p>
+                            )}
+                            {ev.max_capacity != null && (
+                              <p className="text-xs text-stone mt-1">Max {ev.max_capacity} players (waitlist after full)</p>
+                            )}
+                          </div>
                         </div>
+                        <GroupEventRsvp groupId={id} eventId={ev.id} isMember={group.is_member} />
                       </li>
                     ))}
                   </ul>
@@ -335,6 +442,19 @@ export default function GroupDetailPage() {
               </div>
             </div>
           </div>
+
+          <section className="mt-10 md:mt-12" aria-labelledby="group-wall-heading">
+            <h2 id="group-wall-heading" className="text-base font-display text-ink mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-accent-green rounded-full" />
+              Group wall
+            </h2>
+            <GroupFeed
+              groupId={id}
+              isMember={group.is_member}
+              viewerId={group.viewer_id ?? null}
+              canModerate={canManageEvents}
+            />
+          </section>
         </main>
 
         {showEventModal && (
@@ -389,6 +509,23 @@ export default function GroupDetailPage() {
                     className="w-full px-5 py-4 border-2 border-terracotta/30 rounded-2xl focus:ring-2 focus:ring-terracotta focus:border-terracotta text-ink bg-white"
                     placeholder="e.g. Central Park Courts"
                   />
+                </div>
+                <div>
+                  <label htmlFor="event-capacity" className="block text-sm font-bold text-ink mb-2">
+                    Max players (optional)
+                  </label>
+                  <input
+                    id="event-capacity"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={500}
+                    value={eventForm.max_capacity}
+                    onChange={(e) => setEventForm((f) => ({ ...f, max_capacity: e.target.value }))}
+                    className="w-full min-h-[44px] px-5 py-4 border-2 border-terracotta/30 rounded-2xl focus:ring-2 focus:ring-terracotta focus:border-terracotta text-ink bg-white"
+                    placeholder="Unlimited — or e.g. 8 for two courts"
+                  />
+                  <p className="text-xs text-stone mt-1.5">When full, extra going responses join a waitlist in order.</p>
                 </div>
                 <div className="flex gap-3 pt-2">
                   <button

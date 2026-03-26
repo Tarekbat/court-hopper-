@@ -6,7 +6,7 @@ const COLUMNS = [
   {
     title: 'Product',
     links: [
-      { label: 'Browse courts', href: '/#results-section' },
+      { label: 'Browse courts', href: '/courts' },
       { label: 'My bookings', href: '/bookings' },
       { label: 'Community', href: '/groups' },
       { label: 'Pricing', href: '#' },

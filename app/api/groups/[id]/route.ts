@@ -52,7 +52,7 @@ export async function GET(
         .eq('group_id', id),
       supabase
         .from('group_events')
-        .select('id, title, scheduled_at, location, created_by, created_at')
+        .select('id, title, scheduled_at, location, max_capacity, created_by, created_at')
         .eq('group_id', id)
         .gte('scheduled_at', nowIso)
         .order('scheduled_at', { ascending: true })
@@ -88,6 +88,7 @@ export async function GET(
 
     return NextResponse.json({
       ...group,
+      viewer_id: currentUserId,
       sport: (group as any).sports
         ? {
             id: (group as any).sports.id,

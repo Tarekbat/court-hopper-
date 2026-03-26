@@ -15,9 +15,17 @@ interface UserProfile {
   image: string | null
   city?: string | null
   is_admin?: boolean
+  ntrp_rating?: number | null
+  utr_rating?: number | null
+  usta_membership_number?: string | null
+  rating_source?: string | null
+  rating_verified?: boolean
   created_at: string
   updated_at: string
 }
+
+type DayPart = 'morning' | 'afternoon' | 'evening'
+type AvailabilitySlot = { weekday: number; day_part: DayPart }
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -35,7 +43,13 @@ export default function ProfilePage() {
     phone_number: '',
     city: '',
     image: '',
+    ntrp_rating: '',
+    utr_rating: '',
+    usta_membership_number: '',
   })
+
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([])
+  const [availabilitySaving, setAvailabilitySaving] = useState(false)
 
   const [passwordNew, setPasswordNew] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
@@ -68,13 +82,31 @@ export default function ProfilePage() {
         phone_number: data.phone_number || '',
         city: data.city || '',
         image: data.image || '',
+        ntrp_rating: data.ntrp_rating != null ? String(data.ntrp_rating) : '',
+        utr_rating: data.utr_rating != null ? String(data.utr_rating) : '',
+        usta_membership_number: data.usta_membership_number || '',
       })
+
+      // Load availability (best-effort; if table not migrated yet, just ignore)
+      const availRes = await fetch('/api/availability/me')
+      if (availRes.ok) {
+        const j = await availRes.json()
+        setAvailability(Array.isArray(j?.slots) ? j.slots : [])
+      }
     } catch (err) {
       console.error('Error fetching profile:', err)
       setError('Failed to load profile. Please try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const toggleAvailability = (weekday: number, day_part: DayPart) => {
+    setAvailability((prev) => {
+      const exists = prev.some((s) => s.weekday === weekday && s.day_part === day_part)
+      if (exists) return prev.filter((s) => !(s.weekday === weekday && s.day_part === day_part))
+      return [...prev, { weekday, day_part }]
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +128,22 @@ export default function ProfilePage() {
       }
       if (formData.image !== profile?.image) {
         updateData.image = formData.image || null
+      }
+      // Ratings fields
+      const nextNtrp = formData.ntrp_rating.trim() === '' ? null : Number(formData.ntrp_rating)
+      const nextUtr = formData.utr_rating.trim() === '' ? null : Number(formData.utr_rating)
+      if (Number.isFinite(nextNtrp) || formData.ntrp_rating.trim() === '') {
+        if (nextNtrp !== (profile?.ntrp_rating ?? null)) updateData.ntrp_rating = nextNtrp
+      }
+      if (Number.isFinite(nextUtr) || formData.utr_rating.trim() === '') {
+        if (nextUtr !== (profile?.utr_rating ?? null)) updateData.utr_rating = nextUtr
+      }
+      if (formData.usta_membership_number !== (profile?.usta_membership_number ?? '')) {
+        updateData.usta_membership_number = formData.usta_membership_number || null
+      }
+      // Default rating_source when any rating is provided
+      if ((updateData.ntrp_rating != null || updateData.utr_rating != null) && !profile?.rating_source) {
+        updateData.rating_source = 'self_reported'
       }
 
       const response = await fetch('/api/profile', {
@@ -120,6 +168,18 @@ export default function ProfilePage() {
       await supabase.auth.refreshSession()
       router.refresh()
 
+      // Save availability (separate endpoint)
+      setAvailabilitySaving(true)
+      const saveAvail = await fetch('/api/availability/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slots: availability }),
+      })
+      if (!saveAvail.ok) {
+        const j = await saveAvail.json().catch(() => ({}))
+        throw new Error(j.error || 'Failed to save availability (apply DB migrations first)')
+      }
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
@@ -127,6 +187,7 @@ export default function ProfilePage() {
       setError(err instanceof Error ? err.message : 'Failed to update profile. Please try again.')
     } finally {
       setSaving(false)
+      setAvailabilitySaving(false)
     }
   }
 
@@ -252,7 +313,7 @@ export default function ProfilePage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-beige">
         <Header />
-        <div className="max-w-4xl mx-auto px-5 py-10 md:py-12">
+        <div className="max-w-4xl mx-auto px-5 pt-24 pb-10 md:pt-28 md:pb-12">
           <div className="internal-page-header">
             <div>
               <Link
@@ -464,6 +525,109 @@ export default function ProfilePage() {
                 <p className="mt-1 text-xs text-stone">Used to show players and groups near you.</p>
               </div>
 
+              {/* Tennis ratings + availability */}
+              <div className="pt-6 border-t border-stone-soft">
+                <h3 className="text-lg font-display text-ink mb-1">Tennis profile</h3>
+                <p className="text-stone text-sm mb-4">These power player discovery and match scoring.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div>
+                    <label htmlFor="ntrp_rating" className="block text-sm font-medium text-ink mb-2">
+                      NTRP (1.0–7.0)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min={1}
+                      max={7}
+                      id="ntrp_rating"
+                      name="ntrp_rating"
+                      value={formData.ntrp_rating}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                      placeholder="e.g. 3.5"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="utr_rating" className="block text-sm font-medium text-ink mb-2">
+                      UTR (optional)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={25}
+                      id="utr_rating"
+                      name="utr_rating"
+                      value={formData.utr_rating}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                      placeholder="e.g. 7.25"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="usta_membership_number" className="block text-sm font-medium text-ink mb-2">
+                      USTA membership #
+                    </label>
+                    <input
+                      type="text"
+                      id="usta_membership_number"
+                      name="usta_membership_number"
+                      value={formData.usta_membership_number}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-stone-soft rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/20 focus:border-terracotta bg-white text-ink placeholder-stone"
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div>
+                      <p className="text-sm font-medium text-ink">Availability</p>
+                      <p className="text-xs text-stone">Tap slots you’re usually free.</p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[620px]">
+                      <div className="grid grid-cols-[90px_repeat(7,minmax(0,1fr))] gap-2 text-xs font-semibold text-stone mb-2">
+                        <div />
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+                          <div key={d} className="text-center">{d}</div>
+                        ))}
+                      </div>
+                      {(['morning', 'afternoon', 'evening'] as DayPart[]).map((part) => {
+                        const partLabel = part === 'morning' ? 'Morning' : part === 'afternoon' ? 'Afternoon' : 'Evening'
+                        return (
+                          <div key={part} className="grid grid-cols-[90px_repeat(7,minmax(0,1fr))] gap-2 items-center mb-2">
+                            <div className="text-xs font-semibold text-ink">{partLabel}</div>
+                            {Array.from({ length: 7 }).map((_, weekday) => {
+                              const on = availability.some((s) => s.weekday === weekday && s.day_part === part)
+                              return (
+                                <button
+                                  key={`${weekday}:${part}`}
+                                  type="button"
+                                  onClick={() => toggleAvailability(weekday, part)}
+                                  className={`h-11 rounded-xl border text-xs font-semibold transition-colors ${
+                                    on
+                                      ? 'bg-accent-green/15 border-accent-green/30 text-accent-green'
+                                      : 'bg-white border-stone-soft text-stone hover:bg-beige'
+                                  }`}
+                                  aria-pressed={on}
+                                >
+                                  {on ? 'Available' : ''}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Account Info */}
               {profile && (
                 <div className="pt-6 border-t border-stone-soft">
@@ -505,10 +669,10 @@ export default function ProfilePage() {
                 </Link>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || availabilitySaving}
                   className="px-6 py-2.5 btn-premium text-white rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {saving ? 'Saving…' : 'Save changes'}
+                  {saving || availabilitySaving ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
             </form>

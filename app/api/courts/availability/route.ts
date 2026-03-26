@@ -4,16 +4,58 @@ import { parse, format, addHours } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
 
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
+
+function getDayNameFromDateStr(dateStr: string) {
+  // Ensure stable UTC day-of-week.
+  const d = new Date(`${dateStr}T00:00:00Z`)
+  return daysOfWeek[d.getUTCDay()]!
+}
+
+function parseHourFromHHMM(time: unknown): number | null {
+  if (typeof time !== 'string') return null
+  const [hh] = time.split(':')
+  const n = parseInt(hh, 10)
+  return Number.isFinite(n) ? n : null
+}
+
+function getCourtHoursForDay(court: any, dayName: string) {
+  // Default matches existing app behavior.
+  let openStartHour = 7
+  let closeStartHour = 21
+
+  if (court?.hours_24_7) {
+    return { openStartHour, closeStartHour }
+  }
+
+  const hoursByDay = court?.hours_by_day ?? court?.hoursByDay
+  const cfg = hoursByDay && typeof hoursByDay === 'object' ? hoursByDay[dayName] : null
+  const open = parseHourFromHHMM(cfg?.open ?? cfg?.start ?? null)
+  const close = parseHourFromHHMM(cfg?.close ?? cfg?.end ?? null)
+
+  // Clamp to avoid cross-midnight booking issues (the app assumes bookings are within a single-day window).
+  if (typeof open === 'number' && typeof close === 'number' && Number.isFinite(open) && Number.isFinite(close)) {
+    openStartHour = Math.max(0, Math.min(21, open))
+    closeStartHour = Math.max(0, Math.min(21, close))
+    if (closeStartHour < openStartHour) closeStartHour = openStartHour
+  }
+
+  return { openStartHour, closeStartHour }
+}
+
 /**
  * Batch availability endpoint - fetches availability for multiple courts and dates in one query
  * Accepts: ?courtIds=id1,id2,id3&dates=2024-01-01,2024-01-02,2024-01-03
- * Returns: { [courtId]: { [date]: number } } where number is max available courts
+ * Returns: { [courtId]: { [date]: number } } where number is max available courts at any hour that day.
+ * Optional: ?includeSlotCounts=1 adds hourly "open slot" count (hours 7–21 with ≥1 free court), same shape in slotCounts.
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const courtIdsParam = searchParams.get('courtIds')
     const datesParam = searchParams.get('dates')
+    const includeSlotCounts =
+      searchParams.get('includeSlotCounts') === '1' || searchParams.get('includeSlotCounts') === 'true'
 
     if (!courtIdsParam || !datesParam) {
       return NextResponse.json(
@@ -33,14 +75,14 @@ export async function GET(request: NextRequest) {
     const adminSupabase = createAdminClient()
     const { data: courts, error: courtsError } = await adminSupabase
       .from('courts')
-      .select('id, total_courts')
+      .select('id, total_courts, status, available_days, hours_24_7, hours_by_day')
       .in('id', courtIds)
 
     if (courtsError || !courts) {
       return NextResponse.json({ error: 'Failed to fetch courts' }, { status: 500 })
     }
 
-    const courtMap = new Map(courts.map((c: { id: string; total_courts: number | null }) => [c.id, c.total_courts || 1]))
+    const courtMap = new Map(courts.map((c: any) => [c.id, c]))
 
     // Build date ranges
     const dateRanges = dates.map((dateStr: string) => {
@@ -84,10 +126,13 @@ export async function GET(request: NextRequest) {
 
     // Initialize result structure
     const availabilityMap: Record<string, Record<string, number>> = {}
+    const slotCountsMap: Record<string, Record<string, number>> = {}
     courtIds.forEach((courtId: string) => {
       availabilityMap[courtId] = {}
+      if (includeSlotCounts) slotCountsMap[courtId] = {}
       dates.forEach((dateStr: string) => {
         availabilityMap[courtId][dateStr] = 0
+        if (includeSlotCounts) slotCountsMap[courtId][dateStr] = 0
       })
     })
 
@@ -106,38 +151,53 @@ export async function GET(request: NextRequest) {
 
     // Calculate max available courts for each court/date
     courtIds.forEach((courtId: string) => {
-      const totalCourts = courtMap.get(courtId) || 1
+      const court = courtMap.get(courtId)
+      const totalCourts = court?.total_courts || 1
       
       dates.forEach((dateStr: string) => {
         const key = `${courtId}:${dateStr}`
         const dayBookings = bookingsByCourtAndDate.get(key) || []
-        
-        if (dayBookings.length === 0) {
-          // No bookings = all courts available
-          availabilityMap[courtId][dateStr] = totalCourts
+
+        const dayName = getDayNameFromDateStr(dateStr)
+
+        // Inactive / closed courts never have availability.
+        if (court?.status && court.status !== 'active') {
+          availabilityMap[courtId][dateStr] = 0
+          if (includeSlotCounts) slotCountsMap[courtId][dateStr] = 0
           return
         }
 
-        // Calculate max available across all time slots (7 AM - 9 PM)
+        // Respect admin-configured open days.
+        const availableDays: unknown = court?.available_days ?? []
+        const isDayOpen = Array.isArray(availableDays) && availableDays.includes(dayName)
+        if (!isDayOpen) {
+          availabilityMap[courtId][dateStr] = 0
+          if (includeSlotCounts) slotCountsMap[courtId][dateStr] = 0
+          return
+        }
+
+        const { openStartHour, closeStartHour } = getCourtHoursForDay(court, dayName)
+
+        // max courts free in any operating hour, and how many hours have ≥1 court free
         let maxAvailable = 0
-        
-        for (let hour = 7; hour <= 21; hour++) {
+        let hoursWithAvailability = 0
+
+        for (let hour = openStartHour; hour <= closeStartHour; hour++) {
           const time = `${hour.toString().padStart(2, '0')}:00`
           const endTime = format(addHours(parse(time, 'HH:mm', new Date()), 1), 'HH:mm')
-          
+
           const bookedCourtNumbers = new Set<string>()
-          
+
           dayBookings.forEach((booking: any) => {
             const bookingStart = parse(booking.start_time, 'HH:mm', new Date())
             const bookingEnd = parse(booking.end_time, 'HH:mm', new Date())
             const slotStart = parse(time, 'HH:mm', new Date())
             const slotEnd = parse(endTime, 'HH:mm', new Date())
 
-            const overlaps = (
+            const overlaps =
               (slotStart >= bookingStart && slotStart < bookingEnd) ||
               (slotEnd > bookingStart && slotEnd <= bookingEnd) ||
               (slotStart <= bookingStart && slotEnd >= bookingEnd)
-            )
 
             if (overlaps) {
               bookedCourtNumbers.add(booking.court_number)
@@ -145,14 +205,25 @@ export async function GET(request: NextRequest) {
           })
 
           const availableCount = totalCourts - bookedCourtNumbers.size
+          if (availableCount > 0) hoursWithAvailability++
           if (availableCount > maxAvailable) {
             maxAvailable = availableCount
           }
         }
 
         availabilityMap[courtId][dateStr] = maxAvailable
+        if (includeSlotCounts) {
+          slotCountsMap[courtId][dateStr] = hoursWithAvailability
+        }
       })
     })
+
+    if (includeSlotCounts) {
+      return NextResponse.json({
+        maxAvailability: availabilityMap,
+        slotCounts: slotCountsMap,
+      })
+    }
 
     return NextResponse.json(availabilityMap)
   } catch (error) {

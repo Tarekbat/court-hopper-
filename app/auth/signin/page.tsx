@@ -37,12 +37,13 @@ function SignInForm() {
       })
 
       if (signInError) {
-        setError('Invalid email or password')
+        setError(signInError.message || 'Invalid email or password')
       } else if (data.session) {
         router.push('/')
         router.refresh()
       } else {
-        setError('An error occurred. Please try again.')
+        // Common when email confirmations are enabled.
+        setError('Account created successfully. Please check your email to confirm, then sign in.')
       }
     } catch (err) {
       setError('An error occurred. Please try again.')

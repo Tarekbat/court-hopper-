@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
         user_id,
         sport_id,
         skill_level,
+        ntrp_rating_override,
+        available_now_until,
         preferred_locations,
         preferred_days_times,
         notes,
@@ -38,6 +40,8 @@ export async function GET(request: NextRequest) {
       sport_id: p.sport_id,
       sport: p.sports ? { id: p.sports.id, slug: p.sports.slug, name: p.sports.name, icon: p.sports.icon } : null,
       skill_level: p.skill_level,
+      ntrp_rating_override: p.ntrp_rating_override ?? null,
+      available_now_until: p.available_now_until ?? null,
       preferred_locations: p.preferred_locations ?? [],
       preferred_days_times: p.preferred_days_times ?? {},
       notes: p.notes,
@@ -65,7 +69,19 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { sport_id, skill_level, preferred_locations, preferred_days_times, notes, is_active } = body
+    const {
+      sport_id,
+      skill_level,
+      preferred_locations,
+      preferred_days_times,
+      notes,
+      is_active,
+      ntrp_rating_override,
+      utr_rating_override,
+      available_now_until,
+      play_styles,
+      surface_preferences,
+    } = body
 
     if (!sport_id) {
       return NextResponse.json({ error: 'sport_id is required' }, { status: 400 })
@@ -79,6 +95,11 @@ export async function PUT(request: NextRequest) {
       preferred_days_times: preferred_days_times && typeof preferred_days_times === 'object' ? preferred_days_times : {},
       notes: notes != null ? String(notes) : null,
       is_active: is_active !== false,
+      ntrp_rating_override: ntrp_rating_override != null && ntrp_rating_override !== '' ? Number(ntrp_rating_override) : null,
+      utr_rating_override: utr_rating_override != null && utr_rating_override !== '' ? Number(utr_rating_override) : null,
+      available_now_until: available_now_until != null && String(available_now_until).trim() !== '' ? String(available_now_until) : null,
+      play_styles: Array.isArray(play_styles) ? play_styles : [],
+      surface_preferences: Array.isArray(surface_preferences) ? surface_preferences : [],
     }
 
     const { data, error } = await supabase
@@ -87,7 +108,7 @@ export async function PUT(request: NextRequest) {
         onConflict: 'user_id,sport_id',
         ignoreDuplicates: false,
       })
-      .select('id, user_id, sport_id, skill_level, preferred_locations, preferred_days_times, notes, is_active, updated_at')
+      .select('id, user_id, sport_id, skill_level, ntrp_rating_override, utr_rating_override, available_now_until, play_styles, surface_preferences, preferred_locations, preferred_days_times, notes, is_active, updated_at')
       .single()
 
     if (error) {

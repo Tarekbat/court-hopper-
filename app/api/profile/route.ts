@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { z } from 'zod'
+import { hasProfanity } from '@/lib/moderation'
 
 const updateProfileSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   phone_number: z.string().optional().nullable(),
   image: z.union([z.string().url(), z.literal('')]).optional().nullable(),
+  profile_is_public: z.boolean().optional(),
   city: z.string().max(100).optional().nullable(),
+  ntrp_rating: z.number().min(1.0).max(7.0).optional().nullable(),
+  utr_rating: z.number().min(0).max(25).optional().nullable(),
+  usta_membership_number: z.string().max(50).optional().nullable(),
+  rating_source: z.string().max(50).optional().nullable(),
 })
 
 export async function GET(request: NextRequest) {
@@ -20,8 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile from public.users table
-    // Try to select phone_number and is_admin, but handle gracefully if columns don't exist yet
+    // Get user profile from public.users table.
+    // Try to select optional columns, but handle gracefully if columns don't exist yet.
     let selectFields = 'id, name, email, image, created_at, updated_at'
     try {
       // Try with all optional columns first
@@ -30,7 +36,7 @@ export async function GET(request: NextRequest) {
       
       const result = await supabase
         .from('users')
-        .select(`${selectFields}, phone_number, is_admin, city`)
+        .select(`${selectFields}, phone_number, is_admin, profile_is_public, city, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at`)
         .eq('id', session.user.id)
         .single()
 
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
         if (error.message?.includes('city')) {
           const resultWithoutCity = await supabase
             .from('users')
-            .select(`${selectFields}, phone_number, is_admin`)
+            .select(`${selectFields}, phone_number, is_admin, profile_is_public, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at`)
             .eq('id', session.user.id)
             .single()
           if (resultWithoutCity.error) {
@@ -58,7 +64,14 @@ export async function GET(request: NextRequest) {
             phone_number: u.phone_number ?? null,
             image: u.image,
             is_admin: u.is_admin === true,
+            profile_is_public: u.profile_is_public !== false,
             city: null,
+            ntrp_rating: u.ntrp_rating ?? null,
+            utr_rating: u.utr_rating ?? null,
+            usta_membership_number: u.usta_membership_number ?? null,
+            rating_verified: u.rating_verified === true,
+            rating_source: u.rating_source ?? null,
+            last_active_at: u.last_active_at ?? null,
             created_at: u.created_at,
             updated_at: u.updated_at,
           })
@@ -66,7 +79,7 @@ export async function GET(request: NextRequest) {
         if (error.message?.includes('is_admin')) {
           const resultWithoutAdmin = await supabase
             .from('users')
-            .select(`${selectFields}, phone_number`)
+            .select(`${selectFields}, phone_number, profile_is_public, city, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at`)
             .eq('id', session.user.id)
             .single()
           
@@ -107,6 +120,14 @@ export async function GET(request: NextRequest) {
                 phone_number: null,
                 image: userData.image,
                 is_admin: false,
+                profile_is_public: true,
+                city: null,
+                ntrp_rating: null,
+                utr_rating: null,
+                usta_membership_number: null,
+                rating_verified: false,
+                rating_source: null,
+                last_active_at: null,
                 created_at: userData.created_at,
                 updated_at: userData.updated_at,
               })
@@ -122,7 +143,7 @@ export async function GET(request: NextRequest) {
           // Try without phone_number but with is_admin
           const resultWithoutPhone = await supabase
             .from('users')
-            .select(`${selectFields}, is_admin`)
+            .select(`${selectFields}, is_admin, profile_is_public, city, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at`)
             .eq('id', session.user.id)
             .single()
           
@@ -163,6 +184,14 @@ export async function GET(request: NextRequest) {
                 phone_number: null,
                 image: userData.image,
                 is_admin: false,
+                profile_is_public: true,
+                city: null,
+                ntrp_rating: null,
+                utr_rating: null,
+                usta_membership_number: null,
+                rating_verified: false,
+                rating_source: null,
+                last_active_at: null,
                 created_at: userData.created_at,
                 updated_at: userData.updated_at,
               })
@@ -197,7 +226,14 @@ export async function GET(request: NextRequest) {
         phone_number?: string | null
         image: string | null
         is_admin?: boolean | null
+        profile_is_public?: boolean | null
         city?: string | null
+        ntrp_rating?: number | null
+        utr_rating?: number | null
+        usta_membership_number?: string | null
+        rating_verified?: boolean | null
+        rating_source?: string | null
+        last_active_at?: string | null
         created_at: string
         updated_at: string
       }
@@ -211,7 +247,14 @@ export async function GET(request: NextRequest) {
         phone_number: userData.phone_number ?? null,
         image: userData.image,
         is_admin: userData.is_admin === true,
+        profile_is_public: userData.profile_is_public !== false,
         city: userData.city ?? null,
+        ntrp_rating: (userData as any).ntrp_rating ?? null,
+        utr_rating: (userData as any).utr_rating ?? null,
+        usta_membership_number: (userData as any).usta_membership_number ?? null,
+        rating_verified: (userData as any).rating_verified === true,
+        rating_source: (userData as any).rating_source ?? null,
+        last_active_at: (userData as any).last_active_at ?? null,
         created_at: userData.created_at,
         updated_at: userData.updated_at,
       })
@@ -241,6 +284,9 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = updateProfileSchema.parse(body)
+    if (validatedData.name && hasProfanity(validatedData.name)) {
+      return NextResponse.json({ error: 'Please remove inappropriate language.' }, { status: 400 })
+    }
 
     // Update user profile in public.users table
     const updateData: any = {}
@@ -256,9 +302,26 @@ export async function PUT(request: NextRequest) {
     if (validatedData.image !== undefined) {
       updateData.image = validatedData.image || null
     }
+    if (validatedData.profile_is_public !== undefined) {
+      updateData.profile_is_public = validatedData.profile_is_public
+    }
     if (validatedData.city !== undefined) {
       updateData.city = validatedData.city || null
     }
+    if (validatedData.ntrp_rating !== undefined) {
+      updateData.ntrp_rating = validatedData.ntrp_rating ?? null
+    }
+    if (validatedData.utr_rating !== undefined) {
+      updateData.utr_rating = validatedData.utr_rating ?? null
+    }
+    if (validatedData.usta_membership_number !== undefined) {
+      updateData.usta_membership_number = validatedData.usta_membership_number || null
+    }
+    if (validatedData.rating_source !== undefined) {
+      updateData.rating_source = validatedData.rating_source || null
+    }
+    // Update activity timestamp
+    updateData.last_active_at = new Date().toISOString()
 
     // Try to update with phone_number first
     let updatedUser: any
@@ -268,7 +331,7 @@ export async function PUT(request: NextRequest) {
       .from('users')
       .update(updateData)
       .eq('id', session.user.id)
-      .select('id, name, email, phone_number, image, city, created_at, updated_at')
+      .select('id, name, email, phone_number, image, profile_is_public, city, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at, created_at, updated_at')
       .single()
 
     updatedUser = updateResult.data
@@ -283,7 +346,7 @@ export async function PUT(request: NextRequest) {
         .from('users')
         .update(updateDataWithoutPhone)
         .eq('id', session.user.id)
-        .select('id, name, email, image, city, created_at, updated_at')
+        .select('id, name, email, image, city, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at, created_at, updated_at')
         .single()
       
       updatedUser = retryResult.data
@@ -303,11 +366,38 @@ export async function PUT(request: NextRequest) {
         .from('users')
         .update(updateDataWithoutCity)
         .eq('id', session.user.id)
-        .select('id, name, email, phone_number, image, created_at, updated_at')
+        .select('id, name, email, phone_number, image, profile_is_public, ntrp_rating, utr_rating, usta_membership_number, rating_verified, rating_source, last_active_at, created_at, updated_at')
         .single()
       updatedUser = retryResult.data
       error = retryResult.error
       if (updatedUser) (updatedUser as any).city = null
+    }
+
+    // If rating columns don't exist yet, retry without them (keeps compatibility pre-migration)
+    if (error && error.code === '42703' && error.message?.includes('ntrp_rating')) {
+      const updateDataWithoutRatings = { ...updateData }
+      delete updateDataWithoutRatings.ntrp_rating
+      delete updateDataWithoutRatings.utr_rating
+      delete updateDataWithoutRatings.usta_membership_number
+      delete updateDataWithoutRatings.rating_source
+      delete updateDataWithoutRatings.rating_verified
+      delete updateDataWithoutRatings.last_active_at
+      const retryResult = await supabase
+        .from('users')
+        .update(updateDataWithoutRatings)
+        .eq('id', session.user.id)
+        .select('id, name, email, phone_number, image, profile_is_public, city, created_at, updated_at')
+        .single()
+      updatedUser = retryResult.data
+      error = retryResult.error
+      if (updatedUser) {
+        updatedUser.ntrp_rating = null
+        updatedUser.utr_rating = null
+        updatedUser.usta_membership_number = null
+        updatedUser.rating_verified = false
+        updatedUser.rating_source = null
+        updatedUser.last_active_at = null
+      }
     }
 
     if (error) {
@@ -336,7 +426,14 @@ export async function PUT(request: NextRequest) {
       email: updatedUser.email,
       phone_number: updatedUser.phone_number,
       image: updatedUser.image,
+      profile_is_public: updatedUser.profile_is_public !== false,
       city: updatedUser.city ?? null,
+      ntrp_rating: (updatedUser as any).ntrp_rating ?? null,
+      utr_rating: (updatedUser as any).utr_rating ?? null,
+      usta_membership_number: (updatedUser as any).usta_membership_number ?? null,
+      rating_verified: (updatedUser as any).rating_verified === true,
+      rating_source: (updatedUser as any).rating_source ?? null,
+      last_active_at: (updatedUser as any).last_active_at ?? null,
       created_at: updatedUser.created_at,
       updated_at: updatedUser.updated_at,
     })

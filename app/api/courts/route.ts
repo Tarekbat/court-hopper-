@@ -39,51 +39,53 @@ export async function GET(request: NextRequest) {
     const referenceLat = userLat ? parseFloat(userLat) : 25.7617
     const referenceLng = userLng ? parseFloat(userLng) : -80.1918
 
-    let query = supabase.from('courts').select('*')
-
-    // Apply filters
-    if (city) {
-      query = query.ilike('city', `%${city}%`)
+    const applyFilters = (base: any) => {
+      let q = base
+      if (city) {
+        q = q.ilike('city', `%${city}%`)
+      }
+      if (surface && surface !== 'All') {
+        q = q.eq('surface', surface)
+      }
+      if (maxPrice) {
+        q = q.lte('peak_price', parseFloat(maxPrice))
+      }
+      if (minRating) {
+        q = q.gte('rating', parseFloat(minRating))
+      }
+      if (search && search.trim()) {
+        const searchTerm = search.trim()
+        const searchPattern = `%${searchTerm}%`
+        q = q.or(`name.ilike.${searchPattern},address.ilike.${searchPattern},city.ilike.${searchPattern}`)
+        console.log('Applying search filter:', searchTerm)
+      }
+      return q
     }
 
-    if (surface && surface !== 'All') {
-      query = query.eq('surface', surface)
-    }
-
-    if (maxPrice) {
-      query = query.lte('peak_price', parseFloat(maxPrice))
-    }
-
-    if (minRating) {
-      query = query.gte('rating', parseFloat(minRating))
-    }
-
-    if (search && search.trim()) {
-      // Search across name, address, and city fields
-      // Use Supabase's or() method with proper PostgREST syntax
-      const searchTerm = search.trim()
-      const searchPattern = `%${searchTerm}%`
-      
-      // PostgREST or() syntax: field.operator.value,field2.operator.value
-      // The % wildcards should be included in the value
-      query = query.or(
-        `name.ilike.${searchPattern},address.ilike.${searchPattern},city.ilike.${searchPattern}`
-      )
-      
-      console.log('Applying search filter:', searchTerm)
-    }
+    // Primary: active courts only.
+    let query = applyFilters(supabase.from('courts').select('*').eq('status', 'active'))
 
     // Get bookings count for each court
-    const { data: courts, error } = await query.order('rating', { ascending: false })
+    let { data: courts, error } = await query.order('rating', { ascending: false })
 
     if (error) {
       console.error('Error fetching courts:', error)
       return NextResponse.json([])
     }
 
+    // Fallback: if nothing is marked active, return filtered courts regardless of status
+    // so users don't see an empty discover experience.
+    if (!courts || courts.length === 0) {
+      const fallbackQuery = applyFilters(supabase.from('courts').select('*'))
+      const fallbackRes = await fallbackQuery.order('rating', { ascending: false })
+      if (!fallbackRes.error && fallbackRes.data && fallbackRes.data.length > 0) {
+        courts = fallbackRes.data
+      }
+    }
+
     // Get booking counts for confirmed bookings
     if (courts && courts.length > 0) {
-      const courtIds = courts.map((c) => c.id)
+      const courtIds = courts.map((c: any) => c.id)
       const { data: bookings } = await supabase
         .from('bookings')
         .select('court_id')
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest) {
       }, {})
 
       // Add booking counts and calculate distance for courts
-      const courtsWithCounts = courts.map((court) => {
+      const courtsWithCounts = courts.map((court: any) => {
         // Calculate distance if court has valid coordinates
         let distance = court.distance
         if (
@@ -181,7 +183,7 @@ export async function GET(request: NextRequest) {
 
       // Sort by distance if user location is provided, otherwise by rating
       if (userLat && userLng) {
-        courtsWithCounts.sort((a, b) => a.distance - b.distance)
+        courtsWithCounts.sort((a: any, b: any) => a.distance - b.distance)
       }
 
       return NextResponse.json(courtsWithCounts || [])

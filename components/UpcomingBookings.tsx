@@ -44,11 +44,7 @@ export default function UpcomingBookings({ nextBookings }: UpcomingBookingsProps
         <div className="text-center py-8">
           <p className="text-stone mb-4">No upcoming bookings</p>
           <Link
-            href="/"
-            onClick={(e) => {
-              e.preventDefault()
-              document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
-            }}
+            href="/courts"
             className="text-terracotta hover:text-terracotta-dark font-medium text-sm"
           >
             Find a court

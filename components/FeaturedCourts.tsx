@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useEffect, useState, useRef } from 'react'
+import { format } from 'date-fns'
 import { Court } from '@/types'
 import CourtCard from '@/components/CourtCard'
 
@@ -11,10 +12,51 @@ interface FeaturedCourtsProps {
   onViewAll?: () => void
 }
 
+function safeJsonParse<T>(value: unknown, fallback: T): T {
+  if (typeof value !== 'string') return fallback
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return fallback
+  }
+}
+
 function transformCourtRow(court: any): Court {
   const totalCourts = court.total_courts || court.totalCourts || 1
   const lat = court.latitude ?? null
   const lng = court.longitude ?? null
+
+  const amenitiesRaw = court.amenities
+  const imagesRaw = court.images
+  const availableDaysRaw = court.available_days ?? court.availableDays
+
+  const amenities =
+    typeof amenitiesRaw === 'string'
+      ? safeJsonParse<string[]>(amenitiesRaw, [])
+      : Array.isArray(amenitiesRaw)
+        ? (amenitiesRaw as string[])
+        : []
+
+  const filteredAmenities = amenities.filter(
+    (a) => typeof a === 'string' && a.trim().length > 0
+  )
+
+  const images =
+    typeof imagesRaw === 'string'
+      ? safeJsonParse<string[]>(imagesRaw, [])
+      : Array.isArray(imagesRaw)
+        ? (imagesRaw as string[])
+        : []
+
+  const filteredImages = images.filter((i) => typeof i === 'string' && i.trim().length > 0)
+
+  const availableDays =
+    typeof availableDaysRaw === 'string'
+      ? safeJsonParse<any[]>(availableDaysRaw, [])
+      : Array.isArray(availableDaysRaw)
+        ? availableDaysRaw
+        : []
+
   return {
     id: court.id,
     name: court.name,
@@ -33,15 +75,9 @@ function transformCourtRow(court: any): Court {
     surface: court.surface,
     rating: court.rating || 0,
     reviewCount: court.review_count || court.reviewCount || 0,
-    amenities:
-      typeof court.amenities === 'string' ? JSON.parse(court.amenities) : court.amenities || [],
-    images: typeof court.images === 'string' ? JSON.parse(court.images) : court.images || [],
-    availableDays:
-      typeof court.available_days === 'string'
-        ? JSON.parse(court.available_days)
-        : typeof court.availableDays === 'string'
-          ? JSON.parse(court.availableDays)
-          : court.available_days || court.availableDays || [],
+    amenities: filteredAmenities,
+    images: filteredImages,
+    availableDays,
     totalCourts,
     courtNumbers: Array.from({ length: totalCourts }, (_, i) => `Court ${i + 1}`),
     timeSlots: {},
@@ -95,6 +131,41 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts, on
       .slice(0, 6)
   }, [courts, excludeIds])
 
+  /** Hours today with ≥1 court free (matches batch API 7am–9pm grid). */
+  const [slotsTodayByCourtId, setSlotsTodayByCourtId] = useState<Record<string, number>>({})
+  const featuredIdsKey = featuredCourts.map((c) => c.id).join(',')
+
+  useEffect(() => {
+    if (!featuredIdsKey) return
+    let cancelled = false
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+
+    const run = async () => {
+      try {
+        const res = await fetch(
+          `/api/courts/availability?courtIds=${encodeURIComponent(featuredIdsKey)}&dates=${encodeURIComponent(todayStr)}&includeSlotCounts=1`
+        )
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        if (!data?.slotCounts || cancelled) return
+        const next: Record<string, number> = {}
+        for (const id of featuredIdsKey.split(',')) {
+          if (!id) continue
+          const n = data.slotCounts[id]?.[todayStr]
+          if (typeof n === 'number') next[id] = n
+        }
+        if (!cancelled) setSlotsTodayByCourtId(next)
+      } catch {
+        if (!cancelled) setSlotsTodayByCourtId({})
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [featuredIdsKey])
+
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
   const [activeCardIndex, setActiveCardIndex] = useState(0)
 
@@ -114,6 +185,20 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts, on
     refs.forEach((el) => el && observer.observe(el))
     return () => observer.disconnect()
   }, [featuredCourts.length])
+
+  if (courts.length === 0) {
+    return (
+      <section
+        className="featured-courts-section animate-fade-in"
+        style={{ background: '#FFFFFF', padding: '100px 60px' }}
+      >
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-terracotta border-t-transparent mx-auto mb-4"></div>
+          <p className="text-stone font-medium">Loading featured courts…</p>
+        </div>
+      </section>
+    )
+  }
 
   if (featuredCourts.length === 0) {
     return null
@@ -187,7 +272,11 @@ export default function FeaturedCourts({ excludeIds = [], courts: propCourts, on
             ref={(el) => { cardRefs.current[i] = el }}
             className="featured-court-snap"
           >
-            <CourtCard court={court} variant="featured" />
+            <CourtCard
+              court={court}
+              variant="featured"
+              slotsTodayOverride={slotsTodayByCourtId[court.id]}
+            />
           </div>
         ))}
       </div>

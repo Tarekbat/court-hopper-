@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Header from '@/components/Header'
-import { UserPlus, Users, MapPin, X } from '@/components/Icons'
+import { UserPlus, Users, Search, Map as MapIcon, List, X } from '@/components/Icons'
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton'
 import EmptyState from '@/components/ui/EmptyState'
+import DiscoveryFiltersSheet, { type DiscoveryFilters } from '@/components/discovery/DiscoveryFiltersSheet'
+import PlayerDiscoveryCard, { type DiscoveryCardProfile } from '@/components/discovery/PlayerDiscoveryCard'
 
 type Sport = { id: string; slug: string; name: string; icon: string | null }
 type MyProfile = {
@@ -15,6 +17,8 @@ type MyProfile = {
   sport_id: string
   sport: Sport | null
   skill_level: number | null
+  ntrp_rating_override?: number | null
+  available_now_until?: string | null
   preferred_locations: string[]
   preferred_days_times: Record<string, unknown>
   notes: string | null
@@ -29,7 +33,6 @@ export default function FindPlayersPage() {
   const [discover, setDiscover] = useState<DiscoverProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [discoverLoading, setDiscoverLoading] = useState(false)
-  const [sportFilter, setSportFilter] = useState('')
   const [tab, setTab] = useState<'discover' | 'my'>('discover')
   const [showAddProfile, setShowAddProfile] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -37,15 +40,29 @@ export default function FindPlayersPage() {
   const [form, setForm] = useState({
     sport_id: '',
     skill_level: '' as string | number,
+    ntrp_rating_override: '' as string | number,
+    available_now: false,
     notes: '',
     is_active: true,
   })
   const [requestingId, setRequestingId] = useState<string | null>(null)
+  const [connectingId, setConnectingId] = useState<string | null>(null)
   const [requestMessage, setRequestMessage] = useState('')
   const [requestModalUserId, setRequestModalUserId] = useState<string | null>(null)
-  const [requestModalSportId, setRequestModalSportId] = useState('')
+  const [requestModalSportId, setRequestModalSportId] = useState<string | null>(null)
   const [nearYouFilter, setNearYouFilter] = useState(false)
   const [userCity, setUserCity] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'city'>('grid')
+  const [filters, setFilters] = useState<DiscoveryFilters>({
+    sport_id: '',
+    ntrp_min: '',
+    ntrp_max: '',
+    sort: 'recent',
+  })
+
+  const [searchQ, setSearchQ] = useState('')
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string | null; image: string | null }>>([])
+  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -85,13 +102,16 @@ export default function FindPlayersPage() {
       setDiscoverLoading(true)
       try {
         const params = new URLSearchParams()
-        if (sportFilter) params.set('sport_id', sportFilter)
+        if (filters.sport_id) params.set('sport_id', filters.sport_id)
+        if (filters.ntrp_min) params.set('ntrp_min', filters.ntrp_min)
+        if (filters.ntrp_max) params.set('ntrp_max', filters.ntrp_max)
+        if (filters.sort) params.set('sort', filters.sort)
         const baseUrl = nearYouFilter && userCity
           ? `/api/play-partners/nearby?city=${encodeURIComponent(userCity)}`
           : '/api/play-partners'
         const url = nearYouFilter && userCity
-          ? `${baseUrl}${sportFilter ? `&sport_id=${sportFilter}` : ''}`
-          : `/api/play-partners?${params}`
+          ? `${baseUrl}&${params.toString()}`
+          : `/api/play-partners?${params.toString()}`
         const res = await fetch(url)
         if (res.ok) {
           const data = await res.json()
@@ -104,11 +124,33 @@ export default function FindPlayersPage() {
       }
     }
     if (tab === 'discover') fetchDiscover()
-  }, [tab, sportFilter, nearYouFilter, userCity])
+  }, [tab, filters, nearYouFilter, userCity])
 
   useEffect(() => {
     if (!loading) setLoading(false)
   }, [myProfiles])
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      const q = searchQ.trim()
+      if (q.length < 2) {
+        setSearchResults([])
+        return
+      }
+      setSearching(true)
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`)
+        if (!res.ok) return
+        const j = await res.json()
+        if (!cancelled) setSearchResults(Array.isArray(j) ? j : [])
+      } finally {
+        if (!cancelled) setSearching(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [searchQ])
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,6 +164,8 @@ export default function FindPlayersPage() {
         body: JSON.stringify({
           sport_id: form.sport_id,
           skill_level: form.skill_level === '' ? null : Number(form.skill_level),
+          ntrp_rating_override: form.ntrp_rating_override === '' ? null : Number(form.ntrp_rating_override),
+          available_now_until: form.available_now ? new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() : null,
           notes: form.notes.trim() || null,
           is_active: form.is_active,
         }),
@@ -136,7 +180,7 @@ export default function FindPlayersPage() {
         setMyProfiles(list)
       }
       setShowAddProfile(false)
-      setForm({ sport_id: sports[0]?.id ?? '', skill_level: '', notes: '', is_active: true })
+      setForm({ sport_id: sports[0]?.id ?? '', skill_level: '', ntrp_rating_override: '', available_now: false, notes: '', is_active: true })
     } catch (err: any) {
       setSaveError(err.message ?? 'Failed to save')
     } finally {
@@ -144,7 +188,8 @@ export default function FindPlayersPage() {
     }
   }
 
-  const openRequestModal = (userId: string, sportId: string) => {
+  const openRequestModal = (userId: string, sportId: string | null) => {
+    if (!sportId) return
     setRequestModalUserId(userId)
     setRequestModalSportId(sportId)
     setRequestMessage('')
@@ -169,7 +214,7 @@ export default function FindPlayersPage() {
         return
       }
       setRequestModalUserId(null)
-      setRequestModalSportId('')
+      setRequestModalSportId(null)
       setDiscover((prev) => prev.filter((p) => !(p.user_id === requestModalUserId && p.sport_id === requestModalSportId)))
     } catch (e) {
       alert('Failed to send request')
@@ -178,7 +223,102 @@ export default function FindPlayersPage() {
     }
   }
 
+  const connectWithPlayer = async (
+    userId: string,
+    status?: 'none' | 'pending_sent' | 'pending_received' | 'connected'
+  ) => {
+    if (!userId || connectingId) return
+    setConnectingId(userId)
+    try {
+      if (status === 'none' || !status) {
+        const res = await fetch('/api/connections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ to_user_id: userId }),
+        })
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}))
+          alert(j.error ?? 'Failed to send connection request')
+          return
+        }
+      } else if (status === 'pending_received') {
+        const listRes = await fetch('/api/connections', { credentials: 'include' })
+        if (!listRes.ok) throw new Error('Could not load connections')
+        const j = await listRes.json()
+        const edge = (j.connections ?? []).find(
+          (c: any) =>
+            c.status === 'pending' && c.requester_id === userId
+        )
+        if (!edge?.id) throw new Error('No pending request found')
+        const acceptRes = await fetch(`/api/connections/${edge.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: 'accepted' }),
+        })
+        if (!acceptRes.ok) {
+          const err = await acceptRes.json().catch(() => ({}))
+          throw new Error(err.error || 'Could not accept connection')
+        }
+      } else {
+        return
+      }
+      setDiscover((prev) =>
+        prev.map((p: any) =>
+          p.user_id !== userId
+            ? p
+            : {
+                ...p,
+                connection_status:
+                  status === 'pending_received'
+                    ? 'connected'
+                    : 'pending_sent',
+              }
+        )
+      )
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Connection update failed')
+    } finally {
+      setConnectingId(null)
+    }
+  }
+
   const loadingState = loading && myProfiles.length === 0
+
+  const discoverCards: DiscoveryCardProfile[] = (discover as any[]).map((p: any) => ({
+    id: p.id,
+    user_id: p.user_id,
+    sport_id: p.sport_id ?? null,
+    sport: p.sport ?? null,
+    name: p.name ?? null,
+    image: p.image ?? null,
+    notes: p.notes ?? null,
+    city: p.city ?? null,
+    display_ntrp: p.display_ntrp ?? null,
+    match_score_pct: p.match_score_pct ?? null,
+    available_now: p.available_now === true,
+    connection_status: p.connection_status ?? 'none',
+    mutual_connections: p.mutual_connections ?? 0,
+    played_together: p.played_together === true,
+  }))
+
+  const cityGroups = (() => {
+    const map = new globalThis.Map<string, { city: string; count: number; top: DiscoveryCardProfile[] }>()
+    for (const p of discoverCards) {
+      const city = (p.city || 'Unknown').trim() || 'Unknown'
+      const existing = map.get(city) ?? { city, count: 0, top: [] }
+      existing.count += 1
+      existing.top.push(p)
+      map.set(city, existing)
+    }
+    return Array.from(map.values()).map((g) => ({
+      ...g,
+      top: g.top
+        .sort((a, b) => (b.match_score_pct ?? 0) - (a.match_score_pct ?? 0))
+        .slice(0, 3),
+    })).sort((a, b) => b.count - a.count)
+  })()
 
   return (
     <ProtectedRoute>
@@ -223,37 +363,102 @@ export default function FindPlayersPage() {
             </div>
             {tab === 'discover' && (
               <>
-                <select
-                  value={sportFilter}
-                  onChange={(e) => setSportFilter(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-stone-soft bg-white text-ink text-sm font-medium focus:ring-2 focus:ring-terracotta focus:border-terracotta"
-                >
-                  <option value="">All sports</option>
-                  {sports.map((s) => (
-                    <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
-                  ))}
-                </select>
-                {userCity && (
+                <DiscoveryFiltersSheet
+                  sports={sports}
+                  value={filters}
+                  onChange={(next) => setFilters(next)}
+                  canUseNearYou={Boolean(userCity)}
+                  nearYouEnabled={nearYouFilter}
+                  onToggleNearYou={() => setNearYouFilter((v) => !v)}
+                  nearYouLabel={userCity ? `City: ${userCity}` : 'Set your city in Profile'}
+                />
+                <div className="relative flex-1 min-w-[220px] max-w-md">
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-soft bg-white text-ink text-sm font-medium focus-within:ring-2 focus-within:ring-terracotta focus-within:border-terracotta">
+                    <Search className="w-4 h-4 text-stone" />
+                    <input
+                      value={searchQ}
+                      onChange={(e) => setSearchQ(e.target.value)}
+                      placeholder="Search players by name…"
+                      className="w-full bg-transparent outline-none text-ink placeholder:text-stone"
+                      inputMode="search"
+                    />
+                    {searchQ && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchQ(''); setSearchResults([]) }}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg hover:bg-beige"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {searchQ.trim().length >= 2 && (searching || searchResults.length > 0) && (
+                    <div className="absolute z-40 mt-2 w-full bg-white rounded-2xl border border-stone-soft shadow-lg overflow-hidden">
+                      {searching && (
+                        <div className="p-4 text-sm text-stone">Searching…</div>
+                      )}
+                      {!searching && searchResults.length === 0 && (
+                        <div className="p-4 text-sm text-stone">No players found.</div>
+                      )}
+                      {!searching && searchResults.length > 0 && (
+                        <div className="max-h-72 overflow-auto">
+                          {searchResults.map((u) => (
+                            <Link
+                              key={u.id}
+                              href={`/players/${encodeURIComponent(u.id)}`}
+                              className="flex items-center gap-3 px-4 py-3 hover:bg-beige focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+                              onClick={() => { setSearchQ(''); setSearchResults([]) }}
+                            >
+                              {u.image ? (
+                                <img src={u.image} alt="" className="w-9 h-9 rounded-full object-cover border border-stone-soft" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-terracotta text-white flex items-center justify-center font-semibold">
+                                  {(u.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-ink truncate">{u.name || 'Player'}</div>
+                                <div className="text-xs text-stone">View profile</div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white rounded-xl p-1 border border-stone-soft shadow-sm flex touch-manipulation">
                   <button
                     type="button"
-                    onClick={() => setNearYouFilter((v) => !v)}
-                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                      nearYouFilter
-                        ? 'bg-terracotta/10 border-terracotta/30 text-terracotta'
-                        : 'border-stone-soft bg-white text-stone hover:bg-beige'
+                    onClick={() => setViewMode('grid')}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-2 ${
+                      viewMode === 'grid' ? 'bg-ink text-white' : 'text-stone hover:bg-beige'
                     }`}
+                    aria-label="Grid view"
                   >
-                    <MapPin className="w-4 h-4" />
-                    Near you ({userCity})
+                    <List className="w-4 h-4" />
+                    Grid
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('city')}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all inline-flex items-center gap-2 ${
+                      viewMode === 'city' ? 'bg-ink text-white' : 'text-stone hover:bg-beige'
+                    }`}
+                    aria-label="City view"
+                  >
+                    <MapIcon className="w-4 h-4" />
+                    Cities
+                  </button>
+                </div>
               </>
             )}
             {tab === 'my' && (
               <button
                 type="button"
                 onClick={() => {
-                  setForm({ sport_id: sports[0]?.id ?? '', skill_level: '', notes: '', is_active: true })
+                  setForm({ sport_id: sports[0]?.id ?? '', skill_level: '', ntrp_rating_override: '', available_now: false, notes: '', is_active: true })
                   setShowAddProfile(true)
                 }}
                 className="px-5 py-2.5 bg-terracotta text-white rounded-xl hover:bg-terracotta-dark text-sm font-semibold btn-premium"
@@ -266,12 +471,12 @@ export default function FindPlayersPage() {
           {tab === 'discover' && (
             <>
               {discoverLoading ? (
-                <LoadingSkeleton count={3} variant="row" />
-              ) : discover.length === 0 ? (
+                <LoadingSkeleton count={6} variant="card" />
+              ) : discoverCards.length === 0 ? (
                 <EmptyState
                   icon={<UserPlus className="w-14 h-14 text-stone mx-auto" />}
                   title="No players found"
-                  description="No one is currently looking for play partners in this sport. Try another sport or add your own profile so others can find you."
+                  description="Try expanding your filters, switching sports, or turning off Near you."
                   action={
                     <button
                       type="button"
@@ -283,48 +488,61 @@ export default function FindPlayersPage() {
                   }
                 />
               ) : (
-                <div className="space-y-4">
-                  {discover.map((p) => (
-                    <div
-                      key={p.id}
-                      className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6 flex flex-wrap items-center justify-between gap-4"
-                    >
-                      <Link
-                        href={`/players/${encodeURIComponent(p.user_id)}`}
-                        className="flex items-center gap-4 min-w-0 flex-1 rounded-xl -m-2 p-2 hover:bg-beige/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
-                        aria-label={`View profile of ${p.name || 'player'}`}
-                      >
-                        {p.image ? (
-                          <img src={p.image} alt="" className="w-14 h-14 rounded-full object-cover border border-stone-soft shrink-0" />
-                        ) : (
-                          <div className="w-14 h-14 rounded-full bg-terracotta flex items-center justify-center text-white text-xl font-semibold shrink-0">
-                            {(p.name || '?').charAt(0).toUpperCase()}
+                <>
+                  {viewMode === 'city' ? (
+                    <div className="space-y-4">
+                      {cityGroups.map((g) => (
+                        <div key={g.city} className="bg-white rounded-2xl border border-stone-soft shadow-sm p-6">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                              <p className="font-display text-lg text-ink truncate">{g.city}</p>
+                              <p className="text-stone text-sm">{g.count} player{g.count === 1 ? '' : 's'}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (g.city === 'Unknown') return
+                                setNearYouFilter(true)
+                                setUserCity(g.city)
+                                setViewMode('grid')
+                              }}
+                              className="px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:bg-beige text-sm font-medium"
+                              disabled={g.city === 'Unknown'}
+                            >
+                              View
+                            </button>
                           </div>
-                        )}
-                        <div className="min-w-0 text-left">
-                          <p className="font-display text-lg text-ink">{p.name || 'Player'}</p>
-                          <p className="text-stone text-sm flex flex-wrap items-center gap-1.5 mt-0.5">
-                            <span>{p.sport?.icon} {p.sport?.name}</span>
-                            {p.skill_level != null && (
-                              <span className="px-2 py-0.5 bg-stone-soft/80 rounded text-xs">Level {p.skill_level}</span>
-                            )}
-                          </p>
-                          {p.notes && <p className="text-stone text-sm mt-1 line-clamp-2">{p.notes}</p>}
-                          <span className="text-terracotta text-xs font-semibold mt-2 inline-block">View profile →</span>
+                          {g.top.length > 0 && (
+                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {g.top.map((p) => (
+                                <div key={p.id} className="rounded-2xl border border-stone-soft p-4 bg-beige/30">
+                                  <p className="text-sm font-semibold text-ink truncate">{p.name || 'Player'}</p>
+                                  <p className="text-xs text-stone mt-0.5">
+                                    {p.display_ntrp != null ? `${p.display_ntrp} NTRP` : 'NTRP not set'}
+                                    {p.match_score_pct != null ? ` · ${Math.round(p.match_score_pct)}%` : ''}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => openRequestModal(p.user_id, p.sport_id)}
-                        disabled={requestingId === p.user_id}
-                        className="btn-premium px-5 py-2.5 text-white rounded-xl font-semibold text-sm inline-flex items-center gap-2 disabled:opacity-70"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        {requestingId === p.user_id ? 'Sending…' : 'Request to play'}
-                      </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {discoverCards.map((p) => (
+                        <PlayerDiscoveryCard
+                          key={p.id}
+                          profile={p}
+                          onRequest={(userId, sportId) => openRequestModal(userId, sportId)}
+                          onConnect={(userId, status) => connectWithPlayer(userId, status as any)}
+                          connecting={connectingId === p.user_id}
+                          requesting={requestingId === p.user_id}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -373,6 +591,8 @@ export default function FindPlayersPage() {
                           setForm({
                             sport_id: p.sport_id,
                             skill_level: p.skill_level ?? '',
+                            ntrp_rating_override: (p as any).ntrp_rating_override ?? '',
+                            available_now: Boolean((p as any).available_now_until && String((p as any).available_now_until) > new Date().toISOString()),
                             notes: p.notes ?? '',
                             is_active: p.is_active,
                           })
@@ -418,6 +638,38 @@ export default function FindPlayersPage() {
                               <option key={n} value={n}>{n}</option>
                             ))}
                           </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-ink mb-2">NTRP override (optional)</label>
+                          <input
+                            type="number"
+                            step="0.5"
+                            min={1}
+                            max={7}
+                            value={form.ntrp_rating_override}
+                            onChange={(e) => setForm((f) => ({ ...f, ntrp_rating_override: e.target.value }))}
+                            className="w-full px-5 py-4 border-2 border-terracotta/30 rounded-2xl focus:ring-2 focus:ring-terracotta text-ink bg-white"
+                            placeholder="e.g. 3.5"
+                          />
+                          <p className="text-xs text-stone mt-1">If set, this will show on your card for this sport.</p>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-stone-soft bg-beige/40">
+                          <div>
+                            <p className="text-sm font-bold text-ink">Looking to play now</p>
+                            <p className="text-xs text-stone">Shows “Available now” for the next 2 hours.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, available_now: !f.available_now }))}
+                            className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                              form.available_now
+                                ? 'bg-accent-green/15 border-accent-green/30 text-accent-green'
+                                : 'border-stone-soft bg-white text-stone hover:bg-beige'
+                            }`}
+                            aria-pressed={form.available_now}
+                          >
+                            {form.available_now ? 'On' : 'Off'}
+                          </button>
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-ink mb-2">Notes (optional)</label>
@@ -479,7 +731,7 @@ export default function FindPlayersPage() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => { setRequestModalUserId(null); setRequestModalSportId('') }}
+                  onClick={() => { setRequestModalUserId(null); setRequestModalSportId(null) }}
                   className="flex-1 px-5 py-2.5 text-ink bg-white border border-stone-soft rounded-xl hover:bg-beige text-sm font-medium"
                 >
                   Cancel

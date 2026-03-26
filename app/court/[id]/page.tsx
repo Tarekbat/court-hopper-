@@ -97,6 +97,9 @@ export default function CourtDetailPage() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [deletingImage, setDeletingImage] = useState<string | null>(null)
   const [settingMainPhoto, setSettingMainPhoto] = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSaving, setReviewSaving] = useState(false)
 
   // Check authentication and admin status
   useEffect(() => {
@@ -293,6 +296,8 @@ export default function CourtDetailPage() {
         ),
         description: courtData.description || '',
         timeSlots: {},
+        // extra hydrated fields used by this page
+        ...(courtData as any),
       }
 
       // Generate default time slots (7 AM to 9 PM) in 12h format
@@ -604,6 +609,24 @@ export default function CourtDetailPage() {
     return isPeakTime(time) ? court.price.peak : court.price.offPeak
   }
 
+  const submitReview = async () => {
+    if (!reviewComment.trim()) return
+    setReviewSaving(true)
+    try {
+      const res = await fetch(`/api/courts/${params.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: reviewRating, comment: reviewComment.trim() }),
+      })
+      if (res.ok) {
+        setReviewComment('')
+        await fetchCourtData()
+      }
+    } finally {
+      setReviewSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F0EB' }}>
@@ -894,6 +917,14 @@ export default function CourtDetailPage() {
                 </span>
                 <span aria-hidden>·</span>
                 <span>{court.distance} miles away</span>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${court.name} ${court.location.address} ${court.location.city} ${court.location.state}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-terracotta underline ml-2"
+                >
+                  Directions
+                </a>
               </div>
 
               <div
@@ -1002,6 +1033,59 @@ export default function CourtDetailPage() {
                     >
                       {amenity}
                     </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h3 className="font-medium text-[#1A1A1A] mb-3" style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}>
+                  Reviews
+                </h3>
+                <div className="rounded-xl border border-stone-soft p-4 bg-beige/40 mb-4">
+                  <div className="flex gap-2 mb-2">
+                    <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} className="border rounded-lg px-2 py-2 text-sm">
+                      {[5,4,3,2,1].map((n) => <option key={n} value={n}>{n} stars</option>)}
+                    </select>
+                    <button onClick={submitReview} disabled={reviewSaving || !reviewComment.trim()} className="px-3 py-2 rounded-lg bg-terracotta text-white text-sm">
+                      {reviewSaving ? 'Saving...' : 'Post review'}
+                    </button>
+                  </div>
+                  <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} className="w-full border rounded-lg p-2 text-sm" rows={3} placeholder="Share your experience" />
+                </div>
+                <div className="space-y-2">
+                  {((court as any).reviews ?? []).map((r: any) => (
+                    <div key={r.id} className="bg-white border border-stone-soft rounded-xl p-3">
+                      <p className="text-sm font-medium">{r.user?.name || 'Player'} - {r.rating}/5</p>
+                      <p className="text-sm text-stone mt-1">{r.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h3 className="font-medium text-[#1A1A1A] mb-3" style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}>
+                  Who Plays Here
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {((court as any).who_plays_here ?? []).map((p: any) => (
+                    <a key={p.id} href={`/players/${p.id}`} className="flex items-center gap-2 bg-white border border-stone-soft rounded-xl px-3 py-2">
+                      <img src={p.image || '/icon.png'} alt={p.name} className="w-8 h-8 rounded-full object-cover" />
+                      <span className="text-sm">{p.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <h3 className="font-medium text-[#1A1A1A] mb-3" style={{ fontFamily: "'Playfair Display', serif", fontSize: '20px' }}>
+                  Upcoming Play Days
+                </h3>
+                <div className="space-y-2">
+                  {((court as any).upcoming_play_days ?? []).slice(0, 6).map((e: any) => (
+                    <a key={e.id} href={`/groups/${e.group_id}`} className="block bg-white border border-stone-soft rounded-xl p-3">
+                      <p className="text-sm font-medium text-ink">{e.title || 'Group play day'}</p>
+                      <p className="text-xs text-stone mt-1">{new Date(e.starts_at).toLocaleString()}</p>
+                    </a>
                   ))}
                 </div>
               </div>

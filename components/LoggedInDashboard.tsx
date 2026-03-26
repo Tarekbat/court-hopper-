@@ -5,6 +5,7 @@ import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase-client'
 import UpcomingBookings from '@/components/UpcomingBookings'
+import ActivityFeed from '@/components/home/ActivityFeed'
 import { Calendar, Users, ArrowRight } from '@/components/Icons'
 import { format, parseISO } from 'date-fns'
 
@@ -160,6 +161,7 @@ export default function LoggedInDashboard() {
   if (!hasAny) {
     return (
       <div className="mb-16 space-y-6">
+        <ActivityFeed />
         <UpcomingBookings nextBookings={data.nextBookings} />
         <div className="bg-white border border-stone-soft rounded-2xl p-6 md:p-8 shadow-sm text-center">
           <p className="text-ink font-medium mb-2">Welcome back</p>
@@ -167,11 +169,7 @@ export default function LoggedInDashboard() {
             You don&apos;t have any upcoming bookings, groups, or play days yet.
           </p>
           <Link
-            href="/"
-            onClick={(e) => {
-              e.preventDefault()
-              document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth' })
-            }}
+            href="/courts"
             className="text-terracotta hover:text-terracotta-dark font-medium text-sm"
           >
             Find a court
@@ -183,6 +181,7 @@ export default function LoggedInDashboard() {
 
   return (
     <div className="mb-16 space-y-6">
+      <ActivityFeed />
       <UpcomingBookings nextBookings={data.nextBookings} />
 
       {data.myGroups.length > 0 && (
@@ -278,7 +277,7 @@ export default function LoggedInDashboard() {
               <p className="text-sm text-stone">Players and groups in {data.userCity}</p>
             </div>
             <Link
-              href="/play-partners"
+              href="/find-players"
               className="text-terracotta hover:text-terracotta-dark text-sm font-medium flex items-center gap-2 transition-all group"
             >
               Find players
@@ -300,7 +299,7 @@ export default function LoggedInDashboard() {
                     {nearbyPlayers.slice(0, 5).map((p) => (
                       <Link
                         key={p.id}
-                        href={`/play-partners/${p.user_id}`}
+                        href={`/players/${p.user_id}`}
                         className="flex-shrink-0 flex flex-col items-center p-4 border border-stone-soft rounded-xl hover:border-terracotta/40 transition-all bg-beige/30 w-36"
                       >
                         {p.image ? (

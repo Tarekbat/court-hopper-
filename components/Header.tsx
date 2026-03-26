@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase-client'
 import { X } from '@/components/Icons'
 
@@ -15,21 +15,17 @@ const mobileNavLinkStyle = { fontFamily: "'Playfair Display', serif", fontSize: 
 
 export default function Header() {
   const [session, setSession] = useState<Session | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [notifCount, setNotifCount] = useState(0)
+  const [msgCount, setMsgCount] = useState(0)
   const router = useRouter()
-  const pathname = usePathname()
 
-  /** Smooth scroll to courts on home; full navigation when coming from another route. */
-  const handleBrowseCourtsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname === '/') {
-      e.preventDefault()
-      window.history.replaceState(null, '', '#results-section')
-      document.getElementById('results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
+  const primaryLinkClass =
+    "text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -57,6 +53,56 @@ export default function Header() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(false)
+      return
+    }
+    const run = async () => {
+      try {
+        const res = await fetch('/api/profile', { credentials: 'include' })
+        if (!res.ok) {
+          setIsAdmin(false)
+          return
+        }
+        const data = await res.json()
+        setIsAdmin(data?.is_admin === true)
+      } catch {
+        setIsAdmin(false)
+      }
+    }
+    run()
+  }, [session])
+
+  useEffect(() => {
+    if (!session) {
+      setNotifCount(0)
+      setMsgCount(0)
+      return
+    }
+    const run = async () => {
+      try {
+        const [r1, r2] = await Promise.all([
+          fetch('/api/notifications/unread-count', { credentials: 'include' }),
+          fetch('/api/chat/unread-count', { credentials: 'include' }),
+        ])
+        if (r1.ok) {
+          const j = await r1.json()
+          setNotifCount(typeof j.count === 'number' ? j.count : 0)
+        }
+        if (r2.ok) {
+          const j = await r2.json()
+          setMsgCount(typeof j.count === 'number' ? j.count : 0)
+        }
+      } catch {
+        /* offline / transient */
+      }
+    }
+    run()
+    const id = window.setInterval(run, 42000)
+    return () => window.clearInterval(id)
+  }, [session])
 
   useEffect(() => {
     if (mobileOpen) document.body.style.overflow = 'hidden'
@@ -117,26 +163,59 @@ export default function Header() {
               </div>
             ) : session ? (
               <>
-                <Link
-                  href="/#results-section"
-                  onClick={handleBrowseCourtsClick}
-                  className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  Browse courts
+                <Link href="/courts" className={primaryLinkClass} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Courts
                 </Link>
-                <Link href="/find-players" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <Link href="/find-players" className={primaryLinkClass} style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   Find players
                 </Link>
-                <Link href="/bookings" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  My bookings
+                <Link href="/groups" className={primaryLinkClass} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  Groups
                 </Link>
-                <Link href="/groups" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  Community
+                {isAdmin && (
+                  <Link href="/admin" className={primaryLinkClass} style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Admin
+                  </Link>
+                )}
+                <Link
+                  href="/messages"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Messages
+                  {msgCount > 0 && (
+                    <span className="min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full bg-[#C41E2A] text-white text-[11px] font-semibold leading-none">
+                      {msgCount > 9 ? '9+' : msgCount}
+                    </span>
+                  )}
                 </Link>
-                <Link href="/tournaments" className="text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                  Tournaments
+                <Link
+                  href="/notifications"
+                  className="inline-flex items-center gap-1.5 text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  Alerts
+                  {notifCount > 0 && (
+                    <span className="min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full bg-[#C41E2A] text-white text-[11px] font-semibold leading-none">
+                      {notifCount > 9 ? '9+' : notifCount}
+                    </span>
+                  )}
                 </Link>
+                <details className="relative">
+                  <summary
+                    className="list-none cursor-pointer text-[13px] font-normal text-[#1A1A1A] tracking-[0.04em] hover:text-[#C41E2A] transition-colors"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    More
+                  </summary>
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-stone-soft bg-white shadow-lg p-2 z-[220]">
+                    <Link href="/bookings" className="block px-3 py-2 rounded-lg text-sm hover:bg-beige">My bookings</Link>
+                    <Link href="/matches" className="block px-3 py-2 rounded-lg text-sm hover:bg-beige">Matches</Link>
+                    <Link href="/connections" className="block px-3 py-2 rounded-lg text-sm hover:bg-beige">Connections</Link>
+                    <Link href="/tournaments" className="block px-3 py-2 rounded-lg text-sm hover:bg-beige">Tournaments</Link>
+                    <Link href="/feedback" className="block px-3 py-2 rounded-lg text-sm hover:bg-beige">Feedback</Link>
+                  </div>
+                </details>
                 <div className="w-px h-5 bg-[#E8E0D8] shrink-0" style={{ height: '20px' }} aria-hidden />
                 <div className="flex items-center gap-3 shrink-0" style={{ gap: '12px' }}>
                   <Link href="/profile" className="shrink-0 hover:opacity-90 transition-opacity" aria-label="Profile">
@@ -291,26 +370,35 @@ export default function Header() {
             </div>
             <nav className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto py-6">
               <div className="flex flex-col" style={{ gap: '28px' }}>
-                <Link
-                  href="/#results-section"
-                  className={mobileNavLinkClass}
-                  style={mobileNavLinkStyle}
-                  onClick={(e) => {
-                    handleBrowseCourtsClick(e)
-                    closeMobile()
-                  }}
-                >
-                  Browse courts
+                <Link href="/courts" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Courts
                 </Link>
                 <Link href="/find-players" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
                   Find players
+                </Link>
+                <Link href="/connections" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Connections
+                </Link>
+                <Link href="/messages" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Messages{msgCount > 0 ? ` (${msgCount > 9 ? '9+' : msgCount})` : ''}
+                </Link>
+                <Link href="/notifications" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Alerts{notifCount > 0 ? ` (${notifCount > 9 ? '9+' : notifCount})` : ''}
+                </Link>
+                <Link href="/matches" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                  Matches
                 </Link>
                 <Link href="/bookings" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
                   My bookings
                 </Link>
                 <Link href="/groups" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
-                  Community
+                  Groups
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
+                    Admin
+                  </Link>
+                )}
                 <Link href="/tournaments" className={mobileNavLinkClass} style={mobileNavLinkStyle} onClick={closeMobile}>
                   Tournaments
                 </Link>
